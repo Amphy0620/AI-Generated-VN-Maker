@@ -11,7 +11,7 @@
 
 ## Image Generation
 
-The image generation is based on [Aedial's NovelAI API](https://github.com/Aedial/novelai-api). I was lazy with figuring out exactly which files from there are necessary here, so there's definitely a lot of unused bloat left over in this repo from that one.
+The image generation is based on [Aedial's NovelAI API](https://github.com/Aedial/novelai-api). There's almost certainly some bloat in this repo left over from that one, I wasn't that careful in figuring out only which files I absolutely require.
 
 ## Contributing
 
