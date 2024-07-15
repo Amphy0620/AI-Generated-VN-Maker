@@ -1,0 +1,22 @@
+{
+    "resolution": "Normal_Portrait",
+    "scale": 10,
+    "sampler": "k_euler_ancestral",
+    "steps": 28,
+    "n_samples": 1,
+    "strength": 0.7,
+    "noise": 0,
+    "uc_preset": "Preset_Low_Quality_Bad_Anatomy",
+    "quality_toggle": true,
+    "smea": false,
+    "smea_dyn": false,
+    "decrisper": false,
+    "controlnet_strength": 1,
+    "legacy": false,
+    "add_original_image": true,
+    "legacy_v3_extend": false,
+    "params_version": 1,
+
+    "seed": 0,
+    "uc": ""
+}

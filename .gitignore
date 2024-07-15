@@ -1,0 +1,29 @@
+# python
+__pycache__
+
+# pytest
+.pytest_cache
+
+# build
+build/
+dist/
+*.egg-info/
+
+# poetry
+poetry.lock
+requirements.txt
+
+# pycharm
+.idea
+
+# vscode
+.vscode
+
+# node.js
+package.json
+package-lock.json
+node_modules
+
+#venv
+myenv/
+venv/
