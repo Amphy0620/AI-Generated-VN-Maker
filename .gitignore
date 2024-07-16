@@ -27,3 +27,5 @@ node_modules
 #venv
 myenv/
 venv/
+
+generated_VNs/

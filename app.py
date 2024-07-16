@@ -1992,7 +1992,7 @@ def wait_interrupted():
             if model[:6] == "claude":
                 fixedContext += len(prefill) + 85
 
-            contextLeft = maxContextChars - fixedContext
+            contextLeft = int(maxContextChars) - fixedContext
             storySoFar = trimContext(contextLeft, storySoFar)
   
             sendToAIJSON = [{"role": "system", "content": opener}]
