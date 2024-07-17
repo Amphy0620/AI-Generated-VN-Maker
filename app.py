@@ -14,189 +14,7 @@ import tempfile
 app_dir = os.path.dirname(os.path.abspath(__file__))
 app = Flask(__name__, static_folder=app_dir)
 
-def get_next_world_folder():
-    base_dir = Path("generated_VNs")
-    base_dir.mkdir(parents=True, exist_ok=True)
-
-    n = 1
-    while True:
-        folder_name = base_dir / f"world_{n}"
-        if not folder_name.exists():
-            return folder_name
-        n += 1
-
-def minutes_from_time(time_str):
-    hours, minutes = map(int, time_str.split(':'))
-    total_minutes = hours * 60 + minutes
-    return total_minutes
-
-def time_from_minutes(minutes):
-    hours = (minutes // 60) % 24
-    minutes = minutes % 60
-    return f"{hours:02}:{minutes:02}"
-
-def split_char_generations(x, y):
-    result = []
-
-    while x > 0 or y > 0:
-        if x >= 4:
-            result.append([4, 0])
-            x -= 4
-        elif y >= 4:
-            result.append([0, 4])
-            y -= 4
-        elif x >= 2 and y >= 2:
-            result.append([2, 2])
-            x -= 2
-            y -= 2
-        else:
-            result.append([x, y])
-            break
-
-    return result
-
-def createAdjacencyMatrix(locationArray):
-    N = len(locationArray)
-    locationIndex = {location['locationName']: idx for idx, location in enumerate(locationArray)}
-    adjacencyMatrix = np.zeros((N, N), dtype=bool)
-    for idx, location in enumerate(locationArray):
-        for adjacent in location['adjacentLocations']:
-            if adjacent in locationIndex:
-                adjacencyMatrix[idx, locationIndex[adjacent]] = True
-    adjacencyMatrix = np.logical_or(adjacencyMatrix, adjacencyMatrix.T)
-    return adjacencyMatrix.tolist()
-
-def find_connected_components(adjacencyMatrix):
-    """Helper function to find all connected components in the graph"""
-    N = len(adjacencyMatrix)
-    visited = [False] * N
-    components = []
-
-    def dfs(v, component):
-        stack = [v]
-        while stack:
-            node = stack.pop()
-            if not visited[node]:
-                visited[node] = True
-                component.append(node)
-                for neighbor, connected in enumerate(adjacencyMatrix[node]):
-                    if connected and not visited[neighbor]:
-                        stack.append(neighbor)
-
-    for v in range(N):
-        if not visited[v]:
-            component = []
-            dfs(v, component)
-            components.append(component)
-
-    return components
-
-def add_edge(adjacencyMatrix, u, v):
-    """Helper function to add an edge to the adjacency matrix"""
-    adjacencyMatrix[u][v] = True
-    adjacencyMatrix[v][u] = True
-
-def find_vertex_with_least_connections(adjacencyMatrix, vertices):
-    """Helper function to find the vertex with the least connections"""
-    min_connections = float('inf')
-    min_vertex = -1
-    for v in vertices:
-        connections = sum(adjacencyMatrix[v])
-        if connections < min_connections:
-            min_connections = connections
-            min_vertex = v
-    return min_vertex
-
-def find_vertex_with_most_connections(adjacencyMatrix, vertices):
-    """Helper function to find the vertex with the most connections"""
-    max_connections = -1
-    max_vertex = -1
-    for v in vertices:
-        connections = sum(adjacencyMatrix[v])
-        if connections > max_connections:
-            max_connections = connections
-            max_vertex = v
-    return max_vertex
-
-def connect_components(adjacencyMatrix, isHubArea):
-    N = len(adjacencyMatrix)
-    components = find_connected_components(adjacencyMatrix)
-
-    if len(components) == 1:
-        return adjacencyMatrix  # Already connected
-
-    # Check for the first condition: two distinct connected components each with a hub area
-    hub_components = []
-    for component in components:
-        if any(isHubArea[v] for v in component):
-            hub_components.append(component)
-    
-    if len(hub_components) >= 2:
-        # Find the least connected hub area in each hub component and connect them
-        hub_area_pairs = []
-        for component in hub_components:
-            hub_areas = [v for v in component if isHubArea[v]]
-            if hub_areas:
-                least_connected_hub = find_vertex_with_least_connections(adjacencyMatrix, hub_areas)
-                hub_area_pairs.append((least_connected_hub, component))
-        
-        if len(hub_area_pairs) >= 2:
-            u, comp_u = hub_area_pairs[0]
-            v, comp_v = hub_area_pairs[1]
-            add_edge(adjacencyMatrix, u, v)
-            return adjacencyMatrix
-
-    # Check for the second condition: all hub areas in the same component
-    main_hub_component = hub_components[0]
-    other_component = components[1]
-    if len(hub_components) == 1 and len(components) > 1:
-        main_hub_areas = [v for v in main_hub_component if isHubArea[v]]
-        other_vertices = [v for v in other_component]
-
-        if main_hub_areas and other_vertices:
-            least_connected_hub = find_vertex_with_least_connections(adjacencyMatrix, main_hub_areas)
-            most_connected_other = find_vertex_with_most_connections(adjacencyMatrix, other_vertices)
-            add_edge(adjacencyMatrix, least_connected_hub, most_connected_other)
-            return adjacencyMatrix
-
-    return adjacencyMatrix
-
-def find_adjacent_locations(locationArray, currentLocation, adjacencyMatrix):
-    current_index = next((index for (index, d) in enumerate(locationArray) if d["locationName"] == currentLocation), None)
-    adjacent_indices = [i for i, adjacent in enumerate(adjacencyMatrix[current_index]) if adjacent]
-    adjacent_location_names = [locationArray[i]["locationName"] for i in adjacent_indices]
-    return adjacent_location_names
-
-def getBackgroundFilePath(output_dir, currentLocationDict, currentTimeMins):
-        if 420 <= currentTimeMins < 1260:
-            return output_dir.as_posix() + "/locationImages/location_" + f"{str(currentLocationDict.get('locationNumber'))}_day"
-        else:
-            return output_dir.as_posix() + "/locationImages/location_" + f"{str(currentLocationDict.get('locationNumber'))}_night"
-
-def get_location_text_description(locationArray, locationName):
-    for location in locationArray:
-        if location['locationName'] == locationName:
-            return location['locationTextDescription']
-    return None
-
-def trimContext(maxContext, storySoFar):
-    total_length = sum(len(item['content']) for item in storySoFar)
-
-    if total_length <= maxContext:
-        return storySoFar
-
-    trimmed_length = 0
-    trimmed_array = []
-
-    for item in reversed(storySoFar):
-        content_length = len(item['content'])
-        if trimmed_length + content_length <= maxContext:
-            trimmed_array.insert(0, item)  # Insert at the beginning to maintain original order
-            trimmed_length += content_length
-        else:
-            break
-
-    return trimmed_array
+from basic_functions import get_next_world_folder, minutes_from_time, time_from_minutes, split_char_generations, createAdjacencyMatrix, find_connected_components, add_edge, find_vertex_with_least_connections, find_vertex_with_most_connections, connect_components, find_adjacent_locations, getBackgroundFilePath, trimContext
 
 def relationshipDesc(affection, charName):
         if 0 <= affection < 10:
@@ -660,7 +478,7 @@ def submit():
     charArrayDict = []
 
     try:
-        result1 = subprocess.run(['python', 'gen_world_total.py', temp_file_prompt_path, str(output_dir), temp_file_worldJB_path, str(totalCharGens[0][0]), str(totalCharGens[0][1]), model], capture_output=True, text=True)
+        result1 = subprocess.run(['python', 'gen_world.py', temp_file_prompt_path, str(output_dir), temp_file_worldJB_path, str(totalCharGens[0][0]), str(totalCharGens[0][1]), model], capture_output=True, text=True)
 
         char_file = output_dir / "world_0.txt"
         wait_time = 0
@@ -687,7 +505,7 @@ def submit():
     
             time.sleep(sleepTime)
             try:             
-                result1 = subprocess.run(['python', 'gen_world_continue_total.py', temp_file_prompt_path, str(output_dir), temp_file_worldJB_path, str(totalCharGens[counter - 1][0]), str(totalCharGens[counter - 1][1]), model, worldInfo, temp_file_charsSoFar_path, str(counter)], capture_output=True, text=True)
+                result1 = subprocess.run(['python', 'gen_world_continue.py', temp_file_prompt_path, str(output_dir), temp_file_worldJB_path, str(totalCharGens[counter - 1][0]), str(totalCharGens[counter - 1][1]), model, worldInfo, temp_file_charsSoFar_path, str(counter)], capture_output=True, text=True)
 
                 char_file_new = output_dir / f"world_{counter}.txt"
                 wait_time = 0
@@ -755,7 +573,7 @@ def submit():
 
     time.sleep(sleepTime)
     try:
-        result2 = subprocess.run(['python', 'gen_locations_total.py', temp_file_worldContent_path, str(output_dir), temp_file_locJB_path, model], capture_output=True, text=True)
+        result2 = subprocess.run(['python', 'gen_locations.py', temp_file_worldContent_path, str(output_dir), temp_file_locJB_path, model], capture_output=True, text=True)
 
     finally:
         os.remove(temp_file_worldContent_path)
@@ -803,7 +621,7 @@ def submit():
             temp_file_schedJB_path = temp_file_schedJB.name
 
         try:
-            subprocess.run(['python', 'gen_schedule_total.py', temp_file_schedInfo_path, str(output_dir), str(char['charNumber']), temp_file_schedJB_path, model], capture_output=True, text=True)
+            subprocess.run(['python', 'gen_schedule.py', temp_file_schedInfo_path, str(output_dir), str(char['charNumber']), temp_file_schedJB_path, model], capture_output=True, text=True)
         
         finally:
             os.remove(temp_file_schedInfo_path)
@@ -848,7 +666,7 @@ def submit():
     firstOutput = None
     time.sleep(sleepTime)
 
-    firstOutput = subprocess.run(['python', 'initialize_total.py', promptOpener, chars['world_info']+" "+locationsStr, model], capture_output=True, text=True)
+    firstOutput = subprocess.run(['python', 'initialize.py', promptOpener, chars['world_info']+" "+locationsStr, model], capture_output=True, text=True)
 
     global currentLocation, currentAdjacentLocations, currentTime, currentClothing, backgroundFile, currentOutput
 
@@ -972,10 +790,7 @@ def move_to():
 
         AIresponse = None
         try:
-            if model[:3] == "gpt":
-                AIresponse = subprocess.run(['python', 'gen_text_button.py', temp_file_path, model, jailbreak, str(boolRomanticProgression)], capture_output=True, text=True)
-            if model[:6] == "claude":
-                AIresponse = subprocess.run(['python', 'gen_text_button_claude.py', temp_file_path, model, jailbreak, prefill, str(boolRomanticProgression)], capture_output=True, text=True)
+            AIresponse = subprocess.run(['python', 'gen_text_button.py', temp_file_path, model, jailbreak, prefill, str(boolRomanticProgression)], capture_output=True, text=True)
         finally:
             os.remove(temp_file_path)            
         rawOutput = AIresponse.stdout
@@ -1171,10 +986,7 @@ def send_prompt():
 
     AIresponse = None
     try:
-        if model[:3] == "gpt":
-            AIresponse = subprocess.run(['python', 'gen_text_prompt.py', temp_file_path, model, jailbreak, str(boolRomanticProgression)], capture_output=True, text=True)
-        if model[:6] == "claude":
-            AIresponse = subprocess.run(['python', 'gen_text_prompt_claude.py', temp_file_path, model, jailbreak, prefill, str(boolRomanticProgression)], capture_output=True, text=True)
+        AIresponse = subprocess.run(['python', 'gen_text_prompt.py', temp_file_path, model, jailbreak, prefill, str(boolRomanticProgression)], capture_output=True, text=True)
     finally:
         os.remove(temp_file_path)
     rawOutput = AIresponse.stdout
@@ -1987,10 +1799,7 @@ def wait_interrupted():
 
             AIresponse = None
             try:
-                if model[:3] == "gpt":
-                    AIresponse = subprocess.run(['python', 'gen_text_prompt.py', temp_file_path, model, jailbreak, str(boolRomanticProgression)], capture_output=True, text=True)
-                if model[:6] == "claude":
-                    AIresponse = subprocess.run(['python', 'gen_text_prompt_claude.py', temp_file_path, model, jailbreak, prefill, str(boolRomanticProgression)], capture_output=True, text=True)
+                AIresponse = subprocess.run(['python', 'gen_text_prompt.py', temp_file_path, model, jailbreak, prefill, str(boolRomanticProgression)], capture_output=True, text=True)
             finally:
                 os.remove(temp_file_path)
             rawOutput = AIresponse.stdout

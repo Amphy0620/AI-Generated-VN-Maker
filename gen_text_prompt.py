@@ -1,18 +1,52 @@
 import requests
 import sys
-import json
 from pathlib import Path
+import json
 import os
 
-url = os.getenv('proxy_url_gpt')
+url = os.getenv('proxy_url_claude')
 password = os.getenv('proxy_password')
 
-def gen_text_prompt(promptJSON, model, jailbreak, boolRomanticProgression):
+def process_json_array(json_array):
+    # Step 1: Change "system" roles to "user" with content encapsulated
+    for item in json_array:
+        if item['role'] == 'system':
+            item['role'] = 'user'
+            item['content'] = f"[System message: {item['content']}]"
+    
+    # Step 2: Merge adjacent dictionaries with the same role
+    processed_array = []
+    current_role = None
+    current_content = []
+
+    for item in json_array:
+        if item['role'] == current_role:
+            current_content.append(item['content'])
+        else:
+            if current_role is not None:
+                processed_array.append({
+                    'role': current_role,
+                    'content': '\n'.join(current_content)
+                })
+            current_role = item['role']
+            current_content = [item['content']]
+
+    if current_role is not None:
+        processed_array.append({
+            'role': current_role,
+            'content': '\n'.join(current_content)
+        })
+
+    return processed_array
+
+def gen_text_prompt(promptJSON, model, jailbreak, prefill, boolRomanticProgression):
 
     headers = {
         "Authorization": f"Bearer {password}",
         "Content-Type": "application/json"
     }
+
+    isClaude = (model[:6] == "claude")
 
     romanceInstructions = ""
     romanceExample = ""
@@ -24,6 +58,8 @@ def gen_text_prompt(promptJSON, model, jailbreak, boolRomanticProgression):
     promptJSON.append({"role": "system", "content": instructions})
     if len(jailbreak) > 0:
         promptJSON.append({"role": "system", "content": jailbreak})
+    if isClaude and len(prefill) > 0:
+        promptJSON.append({"role": "assistant", "content": prefill})
 
     data = {
         "model": model,
@@ -31,34 +67,61 @@ def gen_text_prompt(promptJSON, model, jailbreak, boolRomanticProgression):
         "messages": promptJSON
     }
 
-    response = requests.post(url, headers=headers, json=data)
-    
+    if isClaude:
+        data['max_tokens'] = 4096
+        data['messages'] = process_json_array(promptJSON)
+        url = os.getenv('proxy_url_claude')
+
+    else:
+        url = os.getenv('proxy_url_gpt')
+
+    response = requests.post(url, headers=headers, json=data, stream=True)
     response_content = ""
-    if response.status_code == 200:
-        for line in response.iter_lines(decode_unicode=True):
-            if line:
-                if line.startswith("data: "):
+        
+    if isClaude:
+        if response.status_code == 200:
+            for line in response.iter_lines(decode_unicode=True):
+                if line:
                     event_data = line[6:]  # Remove "data: " prefix
-                    if event_data.strip() == "[DONE]":
-                        break
                     try:
                         json_data = json.loads(event_data)
-                        if 'choices' in json_data:
-                            delta = json_data['choices'][0].get('delta', {})
-                            if 'content' in delta:
-                                response_content += delta['content']
+                        if 'text' in json_data.get('delta', {}):
+                            response_content += json_data['delta']['text']
                     except json.JSONDecodeError:
                         continue
 
-        return response_content
+            return response_content
+
+    else:
+        if response.status_code == 200:
+            for line in response.iter_lines(decode_unicode=True):
+                if line:
+                    if line.startswith("data: "):
+                        event_data = line[6:]  # Remove "data: " prefix
+                        if event_data.strip() == "[DONE]":
+                            break
+                        try:
+                            json_data = json.loads(event_data)
+                            if 'choices' in json_data:
+                                delta = json_data['choices'][0].get('delta', {})
+                                if 'content' in delta:
+                                    response_content += delta['content']
+                        except json.JSONDecodeError:
+                            continue
+
+            return response_content
 
 if __name__ == "__main__":
-    if len(sys.argv) > 4:
+    if len(sys.argv) > 5:
         file_path = sys.argv[1]
         with open(file_path, 'r') as f:
             promptJSON = json.load(f)
         model = sys.argv[2]
         jailbreak = sys.argv[3]
-        boolRomanticProgression = sys.argv[4]
-        response_data = gen_text_prompt(promptJSON, model, jailbreak, boolRomanticProgression)
+        prefill = sys.argv[4]
+        boolRomanticProgression = sys.argv[5]
+        response_data = gen_text_prompt(promptJSON, model, jailbreak, prefill, boolRomanticProgression)
         print(response_data)
+
+
+
