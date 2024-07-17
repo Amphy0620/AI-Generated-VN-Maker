@@ -4,7 +4,7 @@ from pathlib import Path
 import json
 import os
 
-url = os.getenv('proxy_url_claude')
+url = os.getenv('proxy_url_gpt')
 password = os.getenv('proxy_password')
 
 def process_json_array(json_array):
@@ -46,35 +46,68 @@ def initialize(prompt, model):
         "Content-Type": "application/json"
     }
 
+    isClaude = (model[:6] == "claude")
+
     inputArray = [
-        {"role": "user", "content": prompt},
-        {"role": "assistant", "content": "New location:"}
+        {"role": "system", "content": "You are a helpful assistant."},
+        {"role": "user", "content": prompt}
     ]
 
     data = {
         "model": model,
-        "system": "You are a helpful assistant.",
-        "max_tokens": 4096,
         "stream": True,
-        "messages": process_json_array(inputArray)
+        "messages": inputArray
     }
 
-    response = requests.post(url, headers=headers, json=data, stream=True)
-    response_content = "New location:"
+    if isClaude:
+        inputArray.append({"role": "assistant", "content": "New location:"})
+        inputArray = process_json_array(inputArray)
+        data['messages'] = inputArray
+        data['max_tokens'] = 4096
+        url = os.getenv('proxy_url_claude')
 
-    if response.status_code == 200:
-        for line in response.iter_lines(decode_unicode=True):
-            if line:
-                event_data = line[6:]  # Remove "data: " prefix
-                try:
-                    json_data = json.loads(event_data)
-                    if 'text' in json_data.get('delta', {}):
-                        response_content += json_data['delta']['text']
-                except json.JSONDecodeError:
-                    continue
+    else:
+        url = os.getenv('proxy_url_gpt')        
+        
+    response = requests.post(url, headers=headers, json=data)
+    response_content = ""
+    if isClaude:
+        response_content = "New location:"
 
-        print(response_content)
-        return response_content
+    if isClaude:
+        if response.status_code == 200:
+            for line in response.iter_lines(decode_unicode=True):
+                if line:
+                    event_data = line[6:]  # Remove "data: " prefix
+                    try:
+                        json_data = json.loads(event_data)
+                        if 'text' in json_data.get('delta', {}):
+                            response_content += json_data['delta']['text']
+                    except json.JSONDecodeError:
+                        continue
+
+            print(response_content)
+            return response_content
+
+    else:
+        if response.status_code == 200:
+            for line in response.iter_lines(decode_unicode=True):
+                if line:
+                    if line.startswith("data: "):
+                        event_data = line[6:]  # Remove "data: " prefix
+                        if event_data.strip() == "[DONE]":
+                            break
+                        try:
+                            json_data = json.loads(event_data)
+                            if 'choices' in json_data:
+                                delta = json_data['choices'][0].get('delta', {})
+                                if 'content' in delta:
+                                    response_content += delta['content']
+                        except json.JSONDecodeError:
+                            continue
+
+            print(response_content)
+            return response_content
 
 if __name__ == "__main__":
     if len(sys.argv) > 3:

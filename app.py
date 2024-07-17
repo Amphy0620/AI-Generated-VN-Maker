@@ -660,14 +660,7 @@ def submit():
     charArrayDict = []
 
     try:
-        if model[:3] == "gpt":
-            result1 = subprocess.run(['python', 'gen_world.py', temp_file_prompt_path, str(output_dir), temp_file_worldJB_path, str(totalCharGens[0][0]), str(totalCharGens[0][1]), model], capture_output=True, text=True)
-            if result1.returncode != 0:
-                return jsonify(message='Error processing prompt.', error=result1.stderr), 500
-        if model[:6] == "claude":
-            result1 = subprocess.run(['python', 'gen_world_claude.py', temp_file_prompt_path, str(output_dir), temp_file_worldJB_path, str(totalCharGens[0][0]), str(totalCharGens[0][1]), model], capture_output=True, text=True)
-            if result1.returncode != 0:
-                return jsonify(message='Error processing prompt.', error=result1.stderr), 500
+        result1 = subprocess.run(['python', 'gen_world_total.py', temp_file_prompt_path, str(output_dir), temp_file_worldJB_path, str(totalCharGens[0][0]), str(totalCharGens[0][1]), model], capture_output=True, text=True)
 
         char_file = output_dir / "world_0.txt"
         wait_time = 0
@@ -694,14 +687,7 @@ def submit():
     
             time.sleep(sleepTime)
             try:             
-                if model[:3] == "gpt":
-                    result1 = subprocess.run(['python', 'gen_world_continue.py', temp_file_prompt_path, str(output_dir), temp_file_worldJB_path, str(totalCharGens[counter - 1][0]), str(totalCharGens[counter - 1][1]), model, worldInfo, temp_file_charsSoFar_path, str(counter)], capture_output=True, text=True)
-                    if result1.returncode != 0:
-                        return jsonify(message='Error processing prompt.', error=result1.stderr), 500
-                if model[:6] == "claude":
-                    result1 = subprocess.run(['python', 'gen_world_continue_claude.py', temp_file_prompt_path, str(output_dir), temp_file_worldJB_path, str(totalCharGens[counter - 1][0]), str(totalCharGens[counter - 1][1]), model, worldInfo, temp_file_charsSoFar_path, str(counter)], capture_output=True, text=True)
-                    if result1.returncode != 0:
-                        return jsonify(message='Error processing prompt.', error=result1.stderr), 500
+                result1 = subprocess.run(['python', 'gen_world_continue_total.py', temp_file_prompt_path, str(output_dir), temp_file_worldJB_path, str(totalCharGens[counter - 1][0]), str(totalCharGens[counter - 1][1]), model, worldInfo, temp_file_charsSoFar_path, str(counter)], capture_output=True, text=True)
 
                 char_file_new = output_dir / f"world_{counter}.txt"
                 wait_time = 0
@@ -769,10 +755,7 @@ def submit():
 
     time.sleep(sleepTime)
     try:
-        if model[:3] == "gpt":
-            result2 = subprocess.run(['python', 'gen_locations.py', temp_file_worldContent_path, str(output_dir), temp_file_locJB_path, model], capture_output=True, text=True)
-        if model[:6] == "claude":
-            result2 = subprocess.run(['python', 'gen_locations_claude.py', temp_file_worldContent_path, str(output_dir), temp_file_locJB_path, model], capture_output=True, text=True)
+        result2 = subprocess.run(['python', 'gen_locations_total.py', temp_file_worldContent_path, str(output_dir), temp_file_locJB_path, model], capture_output=True, text=True)
 
     finally:
         os.remove(temp_file_worldContent_path)
@@ -820,10 +803,7 @@ def submit():
             temp_file_schedJB_path = temp_file_schedJB.name
 
         try:
-            if model[:3] == "gpt":
-                subprocess.run(['python', 'gen_schedule.py', temp_file_schedInfo_path, str(output_dir), str(char['charNumber']), temp_file_schedJB_path, model], capture_output=True, text=True)
-            if model[:6] == "claude":
-                subprocess.run(['python', 'gen_schedule_claude.py', temp_file_schedInfo_path, str(output_dir), str(char['charNumber']), temp_file_schedJB_path, model], capture_output=True, text=True)
+            subprocess.run(['python', 'gen_schedule_total.py', temp_file_schedInfo_path, str(output_dir), str(char['charNumber']), temp_file_schedJB_path, model], capture_output=True, text=True)
         
         finally:
             os.remove(temp_file_schedInfo_path)
@@ -867,10 +847,8 @@ def submit():
 
     firstOutput = None
     time.sleep(sleepTime)
-    if model[:3] == "gpt":
-        firstOutput = subprocess.run(['python', 'initialize.py', promptOpener, chars['world_info']+" "+locationsStr, model], capture_output=True, text=True)
-    if model[:6] == "claude":
-        firstOutput = subprocess.run(['python', 'initialize_claude.py', promptOpener, chars['world_info']+" "+locationsStr, model], capture_output=True, text=True)
+
+    firstOutput = subprocess.run(['python', 'initialize_total.py', promptOpener, chars['world_info']+" "+locationsStr, model], capture_output=True, text=True)
 
     global currentLocation, currentAdjacentLocations, currentTime, currentClothing, backgroundFile, currentOutput
 

@@ -7,6 +7,38 @@ import os
 url = os.getenv('proxy_url_gpt')
 password = os.getenv('proxy_password')
 
+def process_json_array(json_array):
+    # Step 1: Change "system" roles to "user" with content encapsulated
+    for item in json_array:
+        if item['role'] == 'system':
+            item['role'] = 'user'
+            item['content'] = f"[System message: {item['content']}]"
+    
+    # Step 2: Merge adjacent dictionaries with the same role
+    processed_array = []
+    current_role = None
+    current_content = []
+
+    for item in json_array:
+        if item['role'] == current_role:
+            current_content.append(item['content'])
+        else:
+            if current_role is not None:
+                processed_array.append({
+                    'role': current_role,
+                    'content': '\n'.join(current_content)
+                })
+            current_role = item['role']
+            current_content = [item['content']]
+
+    if current_role is not None:
+        processed_array.append({
+            'role': current_role,
+            'content': '\n'.join(current_content)
+        })
+
+    return processed_array
+
 def gen_schedule(prompt, output_dir, char_num, jailbreak, model):
     output_path = Path(output_dir)
     output_path.mkdir(exist_ok=True)
@@ -17,37 +49,69 @@ def gen_schedule(prompt, output_dir, char_num, jailbreak, model):
         "Content-Type": "application/json"
     }
 
+    isClaude = (model[:6] == "claude")
+
+    inputArray = [
+        {"role": "system", "content": "You are a helpful assistant."},
+        {"role": "user", "content": prompt},
+        {"role": "system", "content": jailbreak}
+    ]
+
     data = {
         "model": model,
         "stream": True,
-        "messages": [
-            {"role": "system", "content": "You are a helpful assistant."},
-            {"role": "user", "content": prompt},
-            {"role": "system", "content": jailbreak}
-        ]
+        "messages": inputArray
     }
 
-    response = requests.post(url, headers=headers, json=data)
+    if isClaude:
+        inputArray.append({"role": "assistant", "content": "["})
+        inputArray = process_json_array(inputArray)
+        data['messages'] = inputArray
+        data['max_tokens'] = 4096
+        url = os.getenv('proxy_url_claude')
+
+    else:
+        url = os.getenv('proxy_url_gpt')        
         
+    response = requests.post(url, headers=headers, json=data)
     response_content = ""
-    if response.status_code == 200:
-        for line in response.iter_lines(decode_unicode=True):
-            if line:
-                if line.startswith("data: "):
+    if isClaude:
+        response_content = "["
+
+    if isClaude:
+        if response.status_code == 200:
+            for line in response.iter_lines(decode_unicode=True):
+                if line:
                     event_data = line[6:]  # Remove "data: " prefix
-                    if event_data.strip() == "[DONE]":
-                        break
                     try:
                         json_data = json.loads(event_data)
-                        if 'choices' in json_data:
-                            delta = json_data['choices'][0].get('delta', {})
-                            if 'content' in delta:
-                                response_content += delta['content']
+                        if 'text' in json_data.get('delta', {}):
+                            response_content += json_data['delta']['text']
                     except json.JSONDecodeError:
                         continue
 
-        with open(output_path / f"charSchedules/{str(char_num)}_schedule.txt", "w") as f:
-            f.write(response_content)
+            with open(output_path / f"charSchedules/{str(char_num)}_schedule.txt", "w") as f:
+                f.write(response_content)
+
+    else:
+        if response.status_code == 200:
+            for line in response.iter_lines(decode_unicode=True):
+                if line:
+                    if line.startswith("data: "):
+                        event_data = line[6:]  # Remove "data: " prefix
+                        if event_data.strip() == "[DONE]":
+                            break
+                        try:
+                            json_data = json.loads(event_data)
+                            if 'choices' in json_data:
+                                delta = json_data['choices'][0].get('delta', {})
+                                if 'content' in delta:
+                                    response_content += delta['content']
+                        except json.JSONDecodeError:
+                            continue
+
+            with open(output_path / f"charSchedules/{str(char_num)}_schedule.txt", "w") as f:
+                f.write(response_content)
 
 if __name__ == "__main__":
     if len(sys.argv) > 5:
