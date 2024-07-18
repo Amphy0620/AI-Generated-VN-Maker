@@ -14,7 +14,7 @@ import tempfile
 app_dir = os.path.dirname(os.path.abspath(__file__))
 app = Flask(__name__, static_folder=app_dir)
 
-from basic_functions import get_next_world_folder, minutes_from_time, time_from_minutes, split_char_generations, createAdjacencyMatrix, find_connected_components, add_edge, find_vertex_with_least_connections, find_vertex_with_most_connections, connect_components, find_adjacent_locations, getBackgroundFilePath, trimContext
+from basic_functions import get_next_world_folder, minutes_from_time, time_from_minutes, split_char_generations, createAdjacencyMatrix, find_connected_components, add_edge, find_vertex_with_least_connections, find_vertex_with_most_connections, connect_components, find_adjacent_locations, getBackgroundFilePath, get_location_text_description, trimContext
 
 def relationshipDesc(affection, charName):
         if 0 <= affection < 10:
@@ -285,49 +285,98 @@ def index():
                 <input type="checkbox" id="romanceCheckbox" name="romanceCheckbox">
                 <div class="small-text">If checked, all characters will have a hidden affection stat which can be raised with positive interactions and which dictates their relationship with you.</div>
             </div>
+            <div class="form-group-inline">
+                <label for="worldName">World Name:</label>
+                <textarea id="worldName" name="worldName" class="small-input"></textarea>
+                <div class="small-text">Name your VN; don't use special characters that can't appear in a file name. DON'T change this in the middle of the generation process.
+</div>
+            </div>
             <div class="form-group">
                 <label for="prompt">Your prompt:</label>
                 <textarea id="prompt" name="prompt" class="large-textarea" placeholder="Describe the VN you want to generate here. The more detailed you are the better; don't assume the AI has any creativity of its own. (Suggestion: Give pre-made character descriptions, let 4o do the initial generation, and then use Claude to actually play the VN. Example dialogue helps a lot as well; say to reproduce it exactly in the character descriptions.)"></textarea>
             </div>
-            <button type="submit">Submit</button>
-            <button type="button" id="loadSaveBtn">Load Old Save</button>
-            <input type="file" id="fileInput" style="display: none;" />
+                <button type="submit" name="action" value="gen_world">(Step 1) Generate World Info and Characters</button>
+                <div id="gen_world_output" class="small-text"></div>
+                <button type="submit" name="action" value="gen_loc">(Step 2) Generate Locations</button>
+                <div id="gen_loc_output" class="small-text"></div>
+                <button type="submit" name="action" value="gen_sched">(Step 3) Generate Character Schedules</button>
+                <div id="gen_sched_output" class="small-text"></div>
+                <button type="submit" name="action" value="init">(Step 4) Generate Images and Initialize</button>
+                <button type="button" id="loadSaveBtn">Load Old Save</button>
+                <input type="file" id="fileInput" style="display: none;" />
         </form>
         <script>
-            document.getElementById('promptForm').addEventListener('submit', async function(event) {
-                event.preventDefault();
-                const formData = {
-                    prompt: document.getElementById('prompt').value,
-                    playerName: document.getElementById('playerName').value,
-                    playerDescription: document.getElementById('playerDescription').value,
-                    proxyUrl: document.getElementById('proxyUrl').value,
-                    proxyPassword: document.getElementById('proxyPassword').value,
-                    naiUsername: document.getElementById('naiUsername').value,
-                    naiPassword: document.getElementById('naiPassword').value,
-                    model: document.getElementById('model').value,
-                    worldGenJailbreak: document.getElementById('worldGenJailbreak').value,
-                    locationGenJailbreak: document.getElementById('locationGenJailbreak').value,
-                    scheduleGenJailbreak: document.getElementById('scheduleGenJailbreak').value,
-                    charVisualStyle: document.getElementById('charVisualStyle').value,
-                    numMaleChars: document.getElementById('numMaleChars').value,
-                    numFemaleChars: document.getElementById('numFemaleChars').value,
-                    maxContextSize: document.getElementById('maxContextSize').value,
-                    maxProxyGensPerMin: document.getElementById('maxProxyGensPerMin').value,
-                    romanceCheckbox: document.getElementById('romanceCheckbox').checked
-                };
-                const response = await fetch('/submit', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(formData),
+                document.getElementById('promptForm').addEventListener('submit', async function(event) {
+                        event.preventDefault();
+
+                        const formData = {
+                                prompt: document.getElementById('prompt').value,
+                                playerName: document.getElementById('playerName').value,
+                                playerDescription: document.getElementById('playerDescription').value,
+                                proxyUrl: document.getElementById('proxyUrl').value,
+                                proxyPassword: document.getElementById('proxyPassword').value,
+                                naiUsername: document.getElementById('naiUsername').value,
+                                naiPassword: document.getElementById('naiPassword').value,
+                                model: document.getElementById('model').value,
+                                worldGenJailbreak: document.getElementById('worldGenJailbreak').value,
+                                locationGenJailbreak: document.getElementById('locationGenJailbreak').value,
+                                scheduleGenJailbreak: document.getElementById('scheduleGenJailbreak').value,
+                                charVisualStyle: document.getElementById('charVisualStyle').value,
+                                numMaleChars: document.getElementById('numMaleChars').value,
+                                numFemaleChars: document.getElementById('numFemaleChars').value,
+                                maxContextSize: document.getElementById('maxContextSize').value,
+                                maxProxyGensPerMin: document.getElementById('maxProxyGensPerMin').value,
+                                romanceCheckbox: document.getElementById('romanceCheckbox').checked,
+                                worldName: document.getElementById('worldName').value
+                        };
+
+                        const action = event.submitter.value;
+
+                        let url = '';
+                        switch (action) {
+                                case 'gen_world':
+                                        url = '/gen_world';
+                                        break;
+                                case 'gen_loc':
+                                        url = '/gen_loc';
+                                        break;
+                                case 'gen_sched':
+                                        url = '/gen_sched';
+                                        break;
+                                case 'init':
+                                        url = '/init';
+                                        break;
+                        }
+
+                        const response = await fetch(url, {
+                                method: 'POST',
+                                headers: {
+                                        'Content-Type': 'application/json',
+                                },
+                                body: JSON.stringify(formData),
+                        });
+
+                        const result = await response.json();
+                        switch (url) {
+                                case '/gen_world':
+                                        document.getElementById('gen_world_output').innerHTML = "World and character data successfully generated and saved to "+result.world_file_path+".<br>Check and edit the generation if you like, then move on to Step 2.";
+                                        document.getElementById('worldName').innerHTML = result.folderName;
+                                        break;
+                                case '/gen_loc':
+                                        document.getElementById('gen_loc_output').innerHTML = "Location data successfully generated and saved to "+result.loc_file_path+".<br>Check and edit the generation if you like, then move on to Step 3. (Note: We do a little adjacency post-processing to make sure the map is connected and movement is bidirectional.)";
+                                        break;
+                                case '/gen_sched':
+                                        document.getElementById('gen_sched_output').innerHTML = "Schedule data successfully generated and saved in "+result.sched_file_path+".<br>Check and edit the generations if you like, then move on to Step 4.";
+                                        break;
+                                case '/init':
+                                        document.documentElement.innerHTML = result.new_html;
+                                        break;
+                        }
                 });
-                const result = await response.json();
-                document.documentElement.innerHTML = result.new_html;
-            });
-            document.getElementById('loadSaveBtn').addEventListener('click', function() {
-                document.getElementById('fileInput').click();
-            });
+
+                document.getElementById('loadSaveBtn').addEventListener('click', function() {
+                        document.getElementById('fileInput').click();
+                });
 
             document.getElementById('fileInput').addEventListener('change', async function(event) {
                 const file = event.target.files[0];
@@ -381,7 +430,7 @@ boolRomanticProgression = False
 model = None
 
 def refreshValues():
-    global playerName, playerDescription, output_dir, currentLocation, currentAdjacentLocations, currentClothing, currentTime, charArrayDict, charArrayWithPlayerNums, locationArray, allLocationsStr, adjacencyMatrix, storySoFar, worldInfo, maxContextChars, currentOutput, charArrayObj
+    global playerName, playerDescription, output_dir, currentLocation, currentAdjacentLocations, currentClothing, currentTime, charArrayDict, charArrayWithPlayerNums, locationArray, allLocationsStr, adjacencyMatrix, storySoFar, worldInfo, maxContextChars, currentOutput, charArrayObj, boolRomanticProgression
     playerName = ""
     playerDescription = ""
     promptOpener = ""
@@ -403,15 +452,29 @@ def refreshValues():
     currentOutput = ""
     boolRomanticProgression = False    
 
-@app.route('/submit', methods=['POST'])
-def submit():
+@app.route('/gen_world', methods=['POST'])
+def gen_world():
+    data = request.json
     refreshValues()
     global output_dir
-    output_dir = get_next_world_folder()
-    output_dir.mkdir(exist_ok=True)
+
+    folderName = ""
+    VN_name = data['worldName']
+    base_dir = Path("generated_VNs")
+    base_dir.mkdir(parents=True, exist_ok=True)
+    if len(VN_name) > 0:
+        output_dir = base_dir / VN_name
+        output_dir.mkdir(exist_ok=True)
+    else:
+        output_dir = get_next_world_folder()
+        folderName = output_dir.as_posix().rsplit('/', 1)[-1]
+        output_dir.mkdir(exist_ok=True)
 
     global playerName, playerDescription, promptOpener, storySoFar, worldInfo, maxContextChars, maxGensPerMinute, allLocationsStr, boolRomanticProgression
 
+    maxGensPerMinute = 3
+    if len(data['maxProxyGensPerMin']) > 0:
+        maxGensPerMinute = int(data['maxProxyGensPerMin'])
     sleepTime = 60 // maxGensPerMinute + 2
 
     data = request.json
@@ -425,13 +488,9 @@ def submit():
     prompt_modified = prompt+"\n Player information: "+promptOpener
 
     worldJB = data['worldGenJailbreak']
-    locJB = data['locationGenJailbreak']
-    schedJB = data['scheduleGenJailbreak']
 
     numMalesStr = data['numMaleChars']
     numFemalesStr = data['numFemaleChars']
-
-    boolRomanticProgression = data['romanceCheckbox']
 
     proxyURL = data['proxyUrl']
     proxyPassword = data['proxyPassword']
@@ -458,7 +517,6 @@ def submit():
     if len(numFemalesStr) == 0:
         numFemalesStr = "3"
 
-    style = data['charVisualStyle']
     model = data['model']
 
     numMalesInt = int(numMalesStr)
@@ -497,6 +555,8 @@ def submit():
         worldInfo = chars.get('world_info')
         charArrayDict = chars.get('chars')
 
+        os.remove(char_file)
+
         counter = 2
         while counter <= len(totalCharGens):
             with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.json') as temp_file_charsSoFar:
@@ -524,6 +584,7 @@ def submit():
 
                 charArrayDict += newChars
                 counter += 1
+                os.remove(char_file_new)
 
             finally:
                 os.remove(temp_file_charsSoFar_path)
@@ -532,7 +593,241 @@ def submit():
         os.remove(temp_file_prompt_path)
         os.remove(temp_file_worldJB_path) 
 
-    global charArrayObj
+    worldFull = {}
+    worldFull['world_info'] = worldInfo
+    worldFull['chars'] = charArrayDict
+
+    path_to_world = output_dir / "world_and_chars.txt"
+    with open(path_to_world, "w") as f:
+        json.dump(worldFull, f, indent=4)
+
+    return jsonify({'world_file_path': path_to_world.as_posix(), 'folderName': folderName})
+
+
+
+@app.route('/gen_loc', methods=['POST'])
+def gen_loc():
+    data = request.json
+    refreshValues()
+    global output_dir
+
+    VN_name = data['worldName']
+    base_dir = Path("generated_VNs")
+    base_dir.mkdir(parents=True, exist_ok=True)
+    output_dir = base_dir / VN_name
+    output_dir.mkdir(exist_ok=True)
+
+    global playerName, playerDescription, promptOpener, storySoFar, worldInfo, maxContextChars, maxGensPerMinute, allLocationsStr, boolRomanticProgression
+ 
+    maxGensPerMinute = 3
+    if len(data['maxProxyGensPerMin']) > 0:
+        maxGensPerMinute = int(data['maxProxyGensPerMin'])
+    sleepTime = 60 // maxGensPerMinute + 2
+
+    data = request.json
+    locJB = data['locationGenJailbreak']
+
+    proxyURL = data['proxyUrl']
+    proxyPassword = data['proxyPassword']
+    NAIUsername = data['naiUsername']
+    NAIPassword = data['naiPassword']
+
+    os.environ['proxy_url'] = proxyURL
+    if len(proxyURL) > 0:
+        os.environ['proxy_url_gpt'] = proxyURL + "/chat/completions"
+        os.environ['proxy_url_claude'] = proxyURL + "/messages"
+    if len(proxyPassword) > 0:
+        os.environ['proxy_password'] = proxyPassword
+    if len(NAIUsername) > 0:
+        os.environ['NAI_USERNAME'] = NAIUsername
+    if len(NAIPassword) > 0:
+        os.environ['NAI_PASSWORD'] = NAIPassword
+
+    model = data['model']
+
+    char_file = output_dir / "world_and_chars.txt"
+
+    with open(char_file, 'r') as f:
+        worldContentStr = f.read()
+
+    with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.json') as temp_file_worldContent:
+        temp_file_worldContent.write(worldContentStr)
+        temp_file_worldContent_path = temp_file_worldContent.name
+
+    with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.json') as temp_file_locJB:
+        temp_file_locJB.write(locJB)
+        temp_file_locJB_path = temp_file_locJB.name
+
+    time.sleep(sleepTime)
+    try:
+        result2 = subprocess.run(['python', 'gen_locations.py', temp_file_worldContent_path, str(output_dir), temp_file_locJB_path, model], capture_output=True, text=True)
+
+    finally:
+        os.remove(temp_file_worldContent_path)
+        os.remove(temp_file_locJB_path)
+
+    path_to_loc = output_dir / "locations.txt"
+
+    return jsonify({'loc_file_path': path_to_loc.as_posix()})
+
+
+
+@app.route('/gen_sched', methods=['POST'])
+def gen_sched():
+
+    data = request.json
+    refreshValues()
+    global output_dir
+
+    VN_name = data['worldName']
+    base_dir = Path("generated_VNs")
+    base_dir.mkdir(parents=True, exist_ok=True)
+    output_dir = base_dir / VN_name
+    output_dir.mkdir(exist_ok=True)
+
+    global playerName, playerDescription, promptOpener, storySoFar, worldInfo, maxContextChars, maxGensPerMinute, allLocationsStr, boolRomanticProgression
+
+    maxGensPerMinute = 3
+    if len(data['maxProxyGensPerMin']) > 0:
+        maxGensPerMinute = int(data['maxProxyGensPerMin'])
+    sleepTime = 60 // maxGensPerMinute + 2
+
+    data = request.json
+    schedJB = data['scheduleGenJailbreak']
+
+    proxyURL = data['proxyUrl']
+    proxyPassword = data['proxyPassword']
+    NAIUsername = data['naiUsername']
+    NAIPassword = data['naiPassword']
+
+    os.environ['proxy_url'] = proxyURL
+    if len(proxyURL) > 0:
+        os.environ['proxy_url_gpt'] = proxyURL + "/chat/completions"
+        os.environ['proxy_url_claude'] = proxyURL + "/messages"
+    if len(proxyPassword) > 0:
+        os.environ['proxy_password'] = proxyPassword
+    if len(NAIUsername) > 0:
+        os.environ['NAI_USERNAME'] = NAIUsername
+    if len(NAIPassword) > 0:
+        os.environ['NAI_PASSWORD'] = NAIPassword
+
+    model = data['model']
+
+
+
+
+    world_file = output_dir / "world_and_chars.txt"
+    location_file = output_dir / "locations.txt"
+
+    with open(location_file, 'r') as f:
+        locationsStr = f.read()
+    with open(world_file, 'r') as f:
+        chars = json.load(f)
+
+    charArrayDict = chars['chars']
+
+    for char in charArrayDict:
+        infoForSchedule = "Character Name: "+char['charName']+" Character Info: "+char['charPersonality']+" World Info: "+chars['world_info']+" Locations: "+locationsStr
+
+        with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.json') as temp_file_schedInfo:
+            temp_file_schedInfo.write(infoForSchedule)
+            temp_file_schedInfo_path = temp_file_schedInfo.name
+
+        with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.json') as temp_file_schedJB:
+            temp_file_schedJB.write(schedJB)
+            temp_file_schedJB_path = temp_file_schedJB.name
+
+        try:
+            subprocess.run(['python', 'gen_schedule.py', temp_file_schedInfo_path, str(output_dir), str(char['charNumber']), temp_file_schedJB_path, model], capture_output=True, text=True)
+        
+        finally:
+            os.remove(temp_file_schedInfo_path)
+            os.remove(temp_file_schedJB_path)
+
+        time.sleep(sleepTime)
+
+    path_to_sched = output_dir / "charSchedules"
+
+    return jsonify({'sched_file_path': path_to_sched.as_posix()})
+
+
+
+
+@app.route('/init', methods=['POST'])
+def init():
+    data = request.json
+    refreshValues()
+    global output_dir
+
+    VN_name = data['worldName']
+    base_dir = Path("generated_VNs")
+    base_dir.mkdir(parents=True, exist_ok=True)
+    output_dir = base_dir / VN_name
+    output_dir.mkdir(exist_ok=True)
+
+    global playerName, playerDescription, promptOpener, storySoFar, worldInfo, maxContextChars, maxGensPerMinute, allLocationsStr, boolRomanticProgression
+
+    maxGensPerMinute = 3
+    if len(data['maxProxyGensPerMin']) > 0:
+        maxGensPerMinute = int(data['maxProxyGensPerMin'])
+    sleepTime = 60 // maxGensPerMinute + 2
+
+    playerName = data['playerName']
+    if len(playerName) == 0:
+        playerName = "Ballsack"
+    playerDescription = data['playerDescription']
+    promptOpener = f"The player's name is {playerName}. A description of the player: {playerDescription}"
+
+    proxyURL = data['proxyUrl']
+    proxyPassword = data['proxyPassword']
+    NAIUsername = data['naiUsername']
+    NAIPassword = data['naiPassword']
+
+    os.environ['proxy_url'] = proxyURL
+    if len(proxyURL) > 0:
+        os.environ['proxy_url_gpt'] = proxyURL + "/chat/completions"
+        os.environ['proxy_url_claude'] = proxyURL + "/messages"
+    if len(proxyPassword) > 0:
+        os.environ['proxy_password'] = proxyPassword
+    if len(NAIUsername) > 0:
+        os.environ['NAI_USERNAME'] = NAIUsername
+    if len(NAIPassword) > 0:
+        os.environ['NAI_PASSWORD'] = NAIPassword
+
+    maxChars = data['maxContextSize']
+    if len(maxChars) > 0:
+        maxContextChars = maxChars
+
+    style = data['charVisualStyle']
+    model = data['model']
+    boolRomanticProgression = data['romanceCheckbox']
+
+    world_file = output_dir / "world_and_chars.txt"
+    location_file = output_dir / "locations.txt"
+
+    global locationArray, adjacencyMatrix
+
+    with open(location_file, 'r') as f:
+        locations = json.load(f)
+
+    locationArray = locations
+    isHubArea = []
+    for location in locationArray:
+        allLocationsStr += location['locationName']+", "
+        isHubArea.append(location['isHubArea'])
+    adjacencyMatrix = createAdjacencyMatrix(locationArray)
+    
+    while adjacencyMatrix != connect_components(adjacencyMatrix, isHubArea):
+        adjacencyMatrix = connect_components(adjacencyMatrix, isHubArea)
+
+    with open(location_file, 'r') as f:
+        locationsStr = f.read()
+    with open(world_file, 'r') as f:
+        chars = json.load(f)
+
+    global worldInfo, charArrayDict, charArrayObj
+    worldInfo = chars['world_info']
+    charArrayDict = chars['chars']
 
     for char in charArrayDict:
         i = char.get('charNumber')
@@ -560,84 +855,8 @@ def submit():
             character.affection = 100
         charArrayObj.append(character)
 
-    with open(char_file, 'r') as f:
-        worldContentStr = f.read()
-
-    with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.json') as temp_file_worldContent:
-        temp_file_worldContent.write(worldContentStr)
-        temp_file_worldContent_path = temp_file_worldContent.name
-
-    with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.json') as temp_file_locJB:
-        temp_file_locJB.write(locJB)
-        temp_file_locJB_path = temp_file_locJB.name
-
-    time.sleep(sleepTime)
-    try:
-        result2 = subprocess.run(['python', 'gen_locations.py', temp_file_worldContent_path, str(output_dir), temp_file_locJB_path, model], capture_output=True, text=True)
-
-    finally:
-        os.remove(temp_file_worldContent_path)
-        os.remove(temp_file_locJB_path)
-
-    location_file = output_dir / "locations.txt"
-    wait_time = 0
-    max_wait_time = 300  # Maximum wait time of 30 seconds
-    while wait_time < max_wait_time:
-        if location_file.exists() and location_file.stat().st_size > 0:
-            break
-        time.sleep(1)
-        wait_time += 1
-    if wait_time >= max_wait_time:
-        return jsonify(message='Timeout waiting for world.txt to be generated.'), 500
-
-    global locationArray, adjacencyMatrix
-
-    with open(location_file, 'r') as f:
-        locations = json.load(f)
-
-    locationArray = locations
-    isHubArea = []
-    for location in locationArray:
-        allLocationsStr += location['locationName']+", "
-        isHubArea.append(location['isHubArea'])
-    adjacencyMatrix = createAdjacencyMatrix(locationArray)
-    
-    while adjacencyMatrix != connect_components(adjacencyMatrix, isHubArea):
-        adjacencyMatrix = connect_components(adjacencyMatrix, isHubArea)
-
-    with open(location_file, 'r') as f:
-        locationsStr = f.read()
-
-    for char in charArrayDict:
-        time.sleep(sleepTime)
-        infoForSchedule = "Character Name: "+char['charName']+" Character Info: "+char['charPersonality']+" World Info: "+chars['world_info']+" Locations: "+locationsStr
-
-        with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.json') as temp_file_schedInfo:
-            temp_file_schedInfo.write(infoForSchedule)
-            temp_file_schedInfo_path = temp_file_schedInfo.name
-
-        with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.json') as temp_file_schedJB:
-            temp_file_schedJB.write(schedJB)
-            temp_file_schedJB_path = temp_file_schedJB.name
-
-        try:
-            subprocess.run(['python', 'gen_schedule.py', temp_file_schedInfo_path, str(output_dir), str(char['charNumber']), temp_file_schedJB_path, model], capture_output=True, text=True)
-        
-        finally:
-            os.remove(temp_file_schedInfo_path)
-            os.remove(temp_file_schedJB_path)
-
     for char in charArrayObj:
         schedule_file = output_dir / "charSchedules" / f"{char.num}_schedule.txt"
-        wait_time = 0
-        max_wait_time = 300
-        while wait_time < max_wait_time:
-            if schedule_file.exists() and schedule_file.stat().st_size > 0:
-                break
-            time.sleep(1)
-            wait_time += 1
-        if wait_time >= max_wait_time:
-            return jsonify(message='Timeout waiting for world.txt to be generated.'), 500
 
         with open(schedule_file, 'r') as f:
             schedule = json.load(f)
