@@ -265,7 +265,7 @@ def index():
                         <textarea id="charVisualStyle" name="charVisualStyle" placeholder="(Optional, but recommended) Specific style prompts help make character images look more consistent with each other. They get added to all the character-based NAI image gen prompts (and so work best with booru tags). Examples: 1980s (style), Monogatari, anime screencap, ..."></textarea>
                     </div>
                     <div class="small-text">
-                        Default values are 0 boys and 3 girls.
+                        Default values are 0 boys, 3 girls, and 25 locations.
                     </div>
                     <div class="form-group-inline">
                         <div class="form-group">
@@ -275,6 +275,10 @@ def index():
                         <div class="form-group">
                             <label for="numFemaleChars"># of female characters:</label>
                             <input type="number" id="numFemaleChars" name="numFemaleChars" class="small-input">
+                        </div>
+                        <div class="form-group">
+                            <label for="numLocations"># of locations:</label>
+                            <input type="number" id="numLocations" name="numLocations" class="small-input">
                         </div>
                     </div>
                     <div class="small-text">
@@ -411,6 +415,7 @@ def index():
                                 charVisualStyle: document.getElementById('charVisualStyle').value,
                                 numMaleChars: document.getElementById('numMaleChars').value,
                                 numFemaleChars: document.getElementById('numFemaleChars').value,
+                                numLocations: document.getElementById('numLocations').value,
                                 maxContextSize: document.getElementById('maxContextSize').value,
                                 maxProxyGensPerMin: document.getElementById('maxProxyGensPerMin').value,
                                 romanceCheckbox: document.getElementById('romanceCheckbox').checked,
@@ -772,6 +777,12 @@ def gen_loc():
         os.environ['NAI_PASSWORD'] = NAIPassword
 
     model = data['model']
+    numLocations = data['numLocations']
+    numLocationsInt = 0
+    if len(numLocations) == 0:
+        numLocationsInt = 25
+    else:
+        numLocationsInt = int(numLocations)
 
     char_file = output_dir / "world_and_chars.txt"
 
@@ -786,19 +797,46 @@ def gen_loc():
         temp_file_locJB.write(locJB)
         temp_file_locJB_path = temp_file_locJB.name
 
+    locationsArray = []
+    path_to_loc_temp = output_dir / "locations_temp.txt"
+
+    finalLocNum = min(25, numLocationsInt) 
+
     time.sleep(sleepTime)
     try:
-        result2 = subprocess.run(['python', 'gen_locations.py', temp_file_worldContent_path, str(output_dir), temp_file_locJB_path, model], capture_output=True, text=True)
+        try:
+            isContinuation = False
+            result2 = subprocess.run(['python', 'gen_locations.py', temp_file_worldContent_path, str(output_dir), temp_file_locJB_path, model, str(finalLocNum), str(isContinuation)], capture_output=True, text=True)
+            with open(path_to_loc_temp, 'r') as f:
+                locationsArray += json.load(f)
 
+        finally:
+            os.remove(path_to_loc_temp)
+
+        while finalLocNum < numLocationsInt:
+            isContinuation = True
+            finalLocNum = min(finalLocNum + 25, numLocationsInt)
+            time.sleep(sleepTime)
+            with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.json') as temp_file_prevLocations:
+                temp_file_prevLocations.write(json.dumps(locationsArray))
+                temp_file_prevLocations_path = temp_file_prevLocations.name
+
+            try:
+                result2 = subprocess.run(['python', 'gen_locations.py', temp_file_worldContent_path, str(output_dir), temp_file_locJB_path, model, str(finalLocNum), str(isContinuation), temp_file_prevLocations_path], capture_output=True, text=True)
+                with open(path_to_loc_temp, 'r') as f:
+                    locationsArray += json.load(f)
+            finally:
+                os.remove(path_to_loc_temp)
+                os.remove(temp_file_prevLocations_path)
     finally:
         os.remove(temp_file_worldContent_path)
-        os.remove(temp_file_locJB_path)
+        os.remove(temp_file_locJB_path)   
 
     path_to_loc = output_dir / "locations.txt"
+    with open(path_to_loc, 'w') as f:
+        json.dump(locationsArray, f, indent=4)
 
     return jsonify({'loc_file_path': path_to_loc.as_posix()})
-
-
 
 @app.route('/gen_sched', methods=['POST'])
 def gen_sched():

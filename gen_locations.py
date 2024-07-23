@@ -60,7 +60,7 @@ def gen_locations(prompt, output_dir, jailbreak, model):
                     except json.JSONDecodeError:
                         continue
 
-            with open(output_path / "locations.txt", "w") as f:
+            with open(output_path / "locations_temp.txt", "w") as f:
                 f.write(response_content)
 
     else:
@@ -80,18 +80,25 @@ def gen_locations(prompt, output_dir, jailbreak, model):
                         except json.JSONDecodeError:
                             continue
 
-            with open(output_path / "locations.txt", "w") as f:
+            with open(output_path / "locations_temp.txt", "w") as f:
                 f.write(response_content)
 
 if __name__ == "__main__":
 
-    if len(sys.argv) > 4:
+    if len(sys.argv) > 6:
         with open(sys.argv[1], 'r') as f:
             worldInfo = f.read()
-        prompt_modified = gen_location_prompt(worldInfo)
         output_dir = sys.argv[2]
         with open(sys.argv[3], 'r') as f:
             jailbreak = f.read()
         model = sys.argv[4]
+        finalLocationInThisGen = sys.argv[5]
+        isContinuation = sys.argv[6]
+        previousLocations = ""
+        if len(sys.argv) > 7:
+            with open(sys.argv[7], 'r') as f:
+                previousLocations = f.read()
+        prompt_modified = gen_location_prompt(worldInfo, isContinuation, previousLocations)
+        prompt_modified += f"You must stop exactly at location number {finalLocationInThisGen} in this output; you should generate up to this locationNumber and then stop."
         response_data = gen_locations(prompt_modified, output_dir, jailbreak, model)
 
