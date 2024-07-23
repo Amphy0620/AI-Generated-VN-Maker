@@ -252,7 +252,7 @@ def index():
                     </div>
                     <div class="form-group">
                         <label for="locationGenJailbreak">Location generation jailbreak:</label>
-                        <textarea id="locationGenJailbreak" name="locationGenJailbreak" placeholder="(Optional) Highly influences the generation of the different locations. (Suggestion: Impose a certain number of locations here. 45-ish is a soft limit due to token output restrictions. Without a specific number, the AI seems to like to make 20 or so.)"></textarea>
+                        <textarea id="locationGenJailbreak" name="locationGenJailbreak" placeholder="(Optional) Highly influences the generation of the different locations."></textarea>
                     </div>
                     <div class="form-group">
                         <label for="scheduleGenJailbreak">Schedule generation jailbreak:</label>
