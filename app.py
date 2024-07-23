@@ -369,6 +369,10 @@ def index():
                         <input type="checkbox" id="casual_clothes_3" name="clothingStyles" value="casual_clothes_3">
                         <label for="casual_clothes_3">Casual Clothes (Var. 2)</label>
                     </div>
+                    <div>
+                        <input type="checkbox" id="dress_up_clothes" name="clothingStyles" value="dress_up_clothes">
+                        <label for="dress_up_clothes">Formal Wear</label>
+                    </div>
                 </div>
             </div>
             <div class="form-group-checkbox">
@@ -437,7 +441,8 @@ def index():
                                 isWorkClothes: document.getElementById('work_clothes').checked,
                                 isCasualClothes: document.getElementById('casual_clothes').checked,
                                 isCasualClothes2: document.getElementById('casual_clothes_2').checked,
-                                isCasualClothes3: document.getElementById('casual_clothes_3').checked
+                                isCasualClothes3: document.getElementById('casual_clothes_3').checked,
+                                isDressUp: document.getElementById('dress_up_clothes').checked
                         };
 
                         const action = event.submitter.value;
@@ -650,6 +655,8 @@ def gen_world():
         clothingLabels.append("charCasualClothes2")
     if data['isCasualClothes3']:
         clothingLabels.append("charCasualClothes3")
+    if data['isDressUp']:
+        clothingLabels.append("charDressUpClothes")
 
     clothingLabelsStr = ""
     for cloth in clothingLabels:
@@ -895,6 +902,8 @@ def gen_sched():
         clothingNames.append("casual_clothes_2")
     if data['isCasualClothes3']:
         clothingNames.append("casual_clothes_3")
+    if data['isDressUp']:
+        clothingNames.append("dress_up_clothes")
 
     clothingNamesStr = ""
     for cloth in clothingNames:
@@ -1002,6 +1011,8 @@ def init():
         clothingList.append("casual_clothes_2")
     if data['isCasualClothes3']:
         clothingList.append("casual_clothes_3")
+    if data['isDressUp']:
+        clothingList.append("dress_up_clothes")
 
     emotionList = []
     if data['isNeutralHappy']:
@@ -1069,6 +1080,8 @@ def init():
             character.clothingDescription['casual_clothes_2'] = char.get('charCasualClothes2')
         if "casual_clothes_3" in clothingList:
             character.clothingDescription['casual_clothes_3'] = char.get('charCasualClothes3')
+        if "dress_up_clothes" in clothingList:
+            character.clothingDescription['dress_up_clothes'] = char.get('charDressUpClothes')
 
         if char.get('charRelationshipWPlayer') == "acquaintances":
             character.affection = 20
@@ -1130,6 +1143,8 @@ def init():
             clothingStyles.append({"name": "casual_clothes_2", "description": char['charCasualClothes2']})
         if "casual_clothes_3" in clothingList:
             clothingStyles.append({"name": "casual_clothes_3", "description": char['charCasualClothes3']})
+        if "dress_up_clothes" in clothingList:
+            clothingStyles.append({"name": "dress_up_clothes", "description": char['charDressUpClothes']})
  
         for emotion in emotions:
             for clothes in clothingStyles:
