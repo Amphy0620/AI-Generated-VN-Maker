@@ -1,6 +1,6 @@
 from pathlib import Path
 import numpy as np
-
+import json
 
 def get_next_world_folder():
     base_dir = Path("generated_VNs")
@@ -185,3 +185,35 @@ def trimContext(maxContext, storySoFar):
             break
 
     return trimmed_array
+
+def process_json_array(json_array):
+    # Step 1: Change "system" roles to "user" with content encapsulated
+    for item in json_array:
+        if item['role'] == 'system':
+            item['role'] = 'user'
+            item['content'] = f"[System message: {item['content']}]"
+    
+    # Step 2: Merge adjacent dictionaries with the same role
+    processed_array = []
+    current_role = None
+    current_content = []
+
+    for item in json_array:
+        if item['role'] == current_role:
+            current_content.append(item['content'])
+        else:
+            if current_role is not None:
+                processed_array.append({
+                    'role': current_role,
+                    'content': '\n'.join(current_content)
+                })
+            current_role = item['role']
+            current_content = [item['content']]
+
+    if current_role is not None:
+        processed_array.append({
+            'role': current_role,
+            'content': '\n'.join(current_content)
+        })
+
+    return processed_array

@@ -58,7 +58,7 @@ class Character:
         self.withPlayer = False
         self.clothing = "casual_clothes"
         self.emotion = "neutral-happy"
-        self.clothingDescription = {"charFaceAndBody": "", "casual_clothes": "", "swimsuit": "", "work_clothes": "", "underwear": "", "nude": ""}
+        self.clothingDescription = {"charFaceAndBody": ""}
         self.color = None
     def currentActivity(self, currentTimeMins):
         for i in range(len(self.scheduleArray)):
@@ -172,6 +172,18 @@ def index():
             .form-group-checkbox input {
                 margin-right: 10px;
             }
+            .form-group-inline-3 {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                gap: 10px;
+            }
+            .form-group-inline-3 > div {
+                display: flex;
+                align-items: center;
+            }
+            .form-group-inline-3 > div > label {
+                margin-left: 5px;
+            }
         </style>
     </head>
     <body>
@@ -253,7 +265,7 @@ def index():
                         <textarea id="charVisualStyle" name="charVisualStyle" placeholder="(Optional, but recommended) Specific style prompts help make character images look more consistent with each other. They get added to all the character-based NAI image gen prompts (and so work best with booru tags). Examples: 1980s (style), Monogatari, anime screencap, ..."></textarea>
                     </div>
                     <div class="small-text">
-                        Each character adds ~8-9 mins to the total gen time. Default values are 0 boys and 3 girls.
+                        Default values are 0 boys and 3 girls.
                     </div>
                     <div class="form-group-inline">
                         <div class="form-group">
@@ -280,6 +292,81 @@ def index():
                     </div>
                 </div>
             </div>
+            <div class="small-text">
+                Most of the generation time will be spent on character images, since every character needs every emotion-clothing style combination. To estimate the time needed, multiply the number of characters by the number of chosen emotions by the number of chosen clothing styles by 15 seconds.
+            </div>
+            <div class="form-row">
+                <div class="form-group-inline-3">
+                    <label>Choose Emotions to Generate:</label>
+                    <div>
+                        <input type="checkbox" id="neutral-happy" name="emotions" value="neutral-happy" checked>
+                        <label for="neutral-happy">Neutral-Smile</label>
+                    </div>
+                    <div>
+                        <input type="checkbox" id="laughing" name="emotions" value="laughing" checked>
+                        <label for="laughing">Laughing</label>
+                    </div>
+                    <div>
+                        <input type="checkbox" id="angry" name="emotions" value="angry" checked>
+                        <label for="angry">Angry</label>
+                    </div>
+                    <div>
+                        <input type="checkbox" id="sad" name="emotions" value="sad" checked>
+                        <label for="sad">Sad</label>
+                    </div>
+                    <div>
+                        <input type="checkbox" id="embarrassed" name="emotions" value="embarrassed" checked>
+                        <label for="embarrassed">Embarrassed</label>
+                    </div>
+                    <div>
+                        <input type="checkbox" id="neutral-frown" name="emotions" value="neutral-frown">
+                        <label for="neutral-frown">Neutral-Frown</label>
+                    </div>
+                    <div>
+                        <input type="checkbox" id="excited" name="emotions" value="excited">
+                        <label for="excited">Excited</label>
+                    </div>
+                    <div>
+                        <input type="checkbox" id="flushed" name="emotions" value="flushed">
+                        <label for="flushed">Flushed</label>
+                    </div>
+                    <div>
+                        <input type="checkbox" id="disgusted" name="emotions" value="disgusted">
+                        <label for="disgusted">Disgusted</label>
+                    </div>
+                </div>
+                <div class="form-group-inline-3">
+                    <label>Choose Clothing Styles to Generate:</label>
+                    <div>
+                        <input type="checkbox" id="nude" name="clothingStyles" value="nude" checked>
+                        <label for="nude">Nude</label>
+                    </div>
+                    <div>
+                        <input type="checkbox" id="underwear" name="clothingStyles" value="underwear" checked>
+                        <label for="underwear">Underwear</label>
+                    </div>
+                    <div>
+                        <input type="checkbox" id="swimsuit" name="clothingStyles" value="swimsuit" checked>
+                        <label for="swimsuit">Swimsuit</label>
+                    </div>
+                    <div>
+                        <input type="checkbox" id="work_clothes" name="clothingStyles" value="work_clothes" checked>
+                        <label for="work_clothes">Work Clothes (Includes things like uniforms)</label>
+                    </div>
+                    <div>
+                        <input type="checkbox" id="casual_clothes" name="clothingStyles" value="casual_clothes" checked>
+                        <label for="casual_clothes">Casual Clothes</label>
+                    </div>
+                    <div>
+                        <input type="checkbox" id="casual_clothes_2" name="clothingStyles" value="casual_clothes_2">
+                        <label for="casual_clothes_2">Casual Clothes (Var.)</label>
+                    </div>
+                    <div>
+                        <input type="checkbox" id="casual_clothes_3" name="clothingStyles" value="casual_clothes_3">
+                        <label for="casual_clothes_3">Casual Clothes (Var. 2)</label>
+                    </div>
+                </div>
+            </div>
             <div class="form-group-checkbox">
                 <label for="romanceCheckbox">Stat-based Romance Progression?</label>
                 <input type="checkbox" id="romanceCheckbox" name="romanceCheckbox">
@@ -289,21 +376,21 @@ def index():
                 <label for="worldName">World Name:</label>
                 <textarea id="worldName" name="worldName" class="small-input"></textarea>
                 <div class="small-text">Name your VN; don't use special characters that can't appear in a file name. DON'T change this in the middle of the generation process.
-</div>
+                </div>
             </div>
             <div class="form-group">
                 <label for="prompt">Your prompt:</label>
                 <textarea id="prompt" name="prompt" class="large-textarea" placeholder="Describe the VN you want to generate here. The more detailed you are the better; don't assume the AI has any creativity of its own. (Suggestion: Give pre-made character descriptions, let 4o do the initial generation, and then use Claude to actually play the VN. Example dialogue helps a lot as well; say to reproduce it exactly in the character descriptions.)"></textarea>
             </div>
-                <button type="submit" name="action" value="gen_world">(Step 1) Generate World Info and Characters</button>
-                <div id="gen_world_output" class="small-text"></div>
-                <button type="submit" name="action" value="gen_loc">(Step 2) Generate Locations</button>
-                <div id="gen_loc_output" class="small-text"></div>
-                <button type="submit" name="action" value="gen_sched">(Step 3) Generate Character Schedules</button>
-                <div id="gen_sched_output" class="small-text"></div>
-                <button type="submit" name="action" value="init">(Step 4) Generate Images and Initialize</button>
-                <button type="button" id="loadSaveBtn">Load Old Save</button>
-                <input type="file" id="fileInput" style="display: none;" />
+            <button type="submit" name="action" value="gen_world">(Step 1) Generate World Info and Characters</button>
+            <div id="gen_world_output" class="small-text"></div>
+            <button type="submit" name="action" value="gen_loc">(Step 2) Generate Locations</button>
+            <div id="gen_loc_output" class="small-text"></div>
+            <button type="submit" name="action" value="gen_sched">(Step 3) Generate Character Schedules</button>
+            <div id="gen_sched_output" class="small-text"></div>
+            <button type="submit" name="action" value="init">(Step 4) Generate Images and Initialize</button>
+            <button type="button" id="loadSaveBtn">Load Old Save</button>
+            <input type="file" id="fileInput" style="display: none;" />
         </form>
         <script>
                 document.getElementById('promptForm').addEventListener('submit', async function(event) {
@@ -327,7 +414,25 @@ def index():
                                 maxContextSize: document.getElementById('maxContextSize').value,
                                 maxProxyGensPerMin: document.getElementById('maxProxyGensPerMin').value,
                                 romanceCheckbox: document.getElementById('romanceCheckbox').checked,
-                                worldName: document.getElementById('worldName').value
+                                worldName: document.getElementById('worldName').value,
+
+                                isNeutralHappy: document.getElementById('neutral-happy').checked,
+                                isLaughing: document.getElementById('laughing').checked,
+                                isAngry: document.getElementById('angry').checked,
+                                isSad: document.getElementById('sad').checked,
+                                isEmbarrassed: document.getElementById('embarrassed').checked,
+                                isNeutralFrown: document.getElementById('neutral-frown').checked,
+                                isExcited: document.getElementById('excited').checked,
+                                isFlushed: document.getElementById('flushed').checked,
+                                isDisgusted: document.getElementById('disgusted').checked,
+
+                                isNude: document.getElementById('nude').checked,
+                                isUnderwear: document.getElementById('underwear').checked,
+                                isSwimsuit: document.getElementById('swimsuit').checked,
+                                isWorkClothes: document.getElementById('work_clothes').checked,
+                                isCasualClothes: document.getElementById('casual_clothes').checked,
+                                isCasualClothes2: document.getElementById('casual_clothes_2').checked,
+                                isCasualClothes3: document.getElementById('casual_clothes_3').checked
                         };
 
                         const action = event.submitter.value;
@@ -428,6 +533,8 @@ maxGensPerMinute = 3
 currentOutput = ""
 boolRomanticProgression = False
 model = None
+clothingList = []
+emotionList = []
 
 def refreshValues():
     global playerName, playerDescription, output_dir, currentLocation, currentAdjacentLocations, currentClothing, currentTime, charArrayDict, charArrayWithPlayerNums, locationArray, allLocationsStr, adjacencyMatrix, storySoFar, worldInfo, maxContextChars, currentOutput, charArrayObj, boolRomanticProgression
@@ -450,7 +557,9 @@ def refreshValues():
     maxContextChars = 120000
     maxGensPerMinute = 3
     currentOutput = ""
-    boolRomanticProgression = False    
+    boolRomanticProgression = False
+    clothingList = []
+    emotionList = []    
 
 @app.route('/gen_world', methods=['POST'])
 def gen_world():
@@ -522,6 +631,25 @@ def gen_world():
     numMalesInt = int(numMalesStr)
     numFemalesInt = int(numFemalesStr)
 
+    clothingLabels = []
+    isCharWorkClothes = data['isWorkClothes']
+    if data['isUnderwear']:
+        clothingLabels.append("charUnderwear")
+    if data['isSwimsuit']:
+        clothingLabels.append("charSwimsuit")
+    if data['isWorkClothes']:
+        clothingLabels.append("charWorkClothes")
+    if data['isCasualClothes']:
+        clothingLabels.append("charCasualClothes")
+    if data['isCasualClothes2']:
+        clothingLabels.append("charCasualClothes2")
+    if data['isCasualClothes3']:
+        clothingLabels.append("charCasualClothes3")
+
+    clothingLabelsStr = ""
+    for cloth in clothingLabels:
+        clothingLabelsStr += f"\"{cloth}\", "
+
     with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.json') as temp_file_prompt:
         temp_file_prompt.write(prompt_modified)
         temp_file_prompt_path = temp_file_prompt.name
@@ -536,7 +664,7 @@ def gen_world():
     charArrayDict = []
 
     try:
-        result1 = subprocess.run(['python', 'gen_world.py', temp_file_prompt_path, str(output_dir), temp_file_worldJB_path, str(totalCharGens[0][0]), str(totalCharGens[0][1]), model], capture_output=True, text=True)
+        result1 = subprocess.run(['python', 'gen_world.py', temp_file_prompt_path, str(output_dir), temp_file_worldJB_path, str(totalCharGens[0][0]), str(totalCharGens[0][1]), model, clothingLabelsStr, str(isCharWorkClothes)], capture_output=True, text=True)
 
         char_file = output_dir / "world_0.txt"
         wait_time = 0
@@ -565,7 +693,7 @@ def gen_world():
     
             time.sleep(sleepTime)
             try:             
-                result1 = subprocess.run(['python', 'gen_world_continue.py', temp_file_prompt_path, str(output_dir), temp_file_worldJB_path, str(totalCharGens[counter - 1][0]), str(totalCharGens[counter - 1][1]), model, worldInfo, temp_file_charsSoFar_path, str(counter)], capture_output=True, text=True)
+                result1 = subprocess.run(['python', 'gen_world_continue.py', temp_file_prompt_path, str(output_dir), temp_file_worldJB_path, str(totalCharGens[counter - 1][0]), str(totalCharGens[counter - 1][1]), model, worldInfo, temp_file_charsSoFar_path, str(counter), clothingLabelsStr, str(isCharWorkClothes)], capture_output=True, text=True)
 
                 char_file_new = output_dir / f"world_{counter}.txt"
                 wait_time = 0
@@ -713,8 +841,27 @@ def gen_sched():
 
     model = data['model']
 
+    clothingNames = []
+    isCharWorkClothes = data['isWorkClothes']
+    if data['isNude']:
+        clothingNames.append("nude")
+    if data['isUnderwear']:
+        clothingNames.append("underwear")
+    if data['isSwimsuit']:
+        clothingNames.append("swimsuit")
+    if data['isWorkClothes']:
+        clothingNames.append("work_clothes")
+    if data['isCasualClothes']:
+        clothingNames.append("casual_clothes")
+    if data['isCasualClothes2']:
+        clothingNames.append("casual_clothes_2")
+    if data['isCasualClothes3']:
+        clothingNames.append("casual_clothes_3")
 
-
+    clothingNamesStr = ""
+    for cloth in clothingNames:
+        clothingNamesStr += (cloth + ", ")
+    clothingNamesStr = clothingNamesStr[:-2]
 
     world_file = output_dir / "world_and_chars.txt"
     location_file = output_dir / "locations.txt"
@@ -738,7 +885,7 @@ def gen_sched():
             temp_file_schedJB_path = temp_file_schedJB.name
 
         try:
-            subprocess.run(['python', 'gen_schedule.py', temp_file_schedInfo_path, str(output_dir), str(char['charNumber']), temp_file_schedJB_path, model], capture_output=True, text=True)
+            subprocess.run(['python', 'gen_schedule.py', temp_file_schedInfo_path, str(output_dir), str(char['charNumber']), temp_file_schedJB_path, model, clothingNamesStr, str(isCharWorkClothes)], capture_output=True, text=True)
         
         finally:
             os.remove(temp_file_schedInfo_path)
@@ -765,7 +912,7 @@ def init():
     output_dir = base_dir / VN_name
     output_dir.mkdir(exist_ok=True)
 
-    global playerName, playerDescription, promptOpener, storySoFar, worldInfo, maxContextChars, maxGensPerMinute, allLocationsStr, boolRomanticProgression
+    global playerName, playerDescription, promptOpener, storySoFar, worldInfo, maxContextChars, maxGensPerMinute, allLocationsStr, boolRomanticProgression, clothingList, emotionList
 
     maxGensPerMinute = 3
     if len(data['maxProxyGensPerMin']) > 0:
@@ -802,6 +949,42 @@ def init():
     model = data['model']
     boolRomanticProgression = data['romanceCheckbox']
 
+    clothingList = []
+    if data['isNude']:
+        clothingList.append("nude")
+    if data['isUnderwear']:
+        clothingList.append("underwear")
+    if data['isSwimsuit']:
+        clothingList.append("swimsuit")
+    if data['isWorkClothes']:
+        clothingList.append("work_clothes")
+    if data['isCasualClothes']:
+        clothingList.append("casual_clothes")
+    if data['isCasualClothes2']:
+        clothingList.append("casual_clothes_2")
+    if data['isCasualClothes3']:
+        clothingList.append("casual_clothes_3")
+
+    emotionList = []
+    if data['isNeutralHappy']:
+        emotionList.append("neutral-happy")
+    if data['isSad']:
+        emotionList.append("sad")
+    if data['isLaughing']:
+        emotionList.append("laughing")
+    if data['isAngry']:
+        emotionList.append("angry")
+    if data['isEmbarrassed']:
+        emotionList.append("embarrassed")
+    if data['isNeutralFrown']:
+        emotionList.append("neutral-frown")
+    if data['isExcited']:
+        emotionList.append("excited")
+    if data['isFlushed']:
+        emotionList.append("flushed")
+    if data['isDisgusted']:
+        emotionList.append("disgusted")
+
     world_file = output_dir / "world_and_chars.txt"
     location_file = output_dir / "locations.txt"
 
@@ -836,10 +1019,18 @@ def init():
         character.personality = char.get('charPersonality')
         character.color = char.get('charColorCode')
         character.clothingDescription['charFaceAndBody'] = char.get('charFaceAndBody')
-        character.clothingDescription['underwear'] = char.get('charUnderwear')
-        character.clothingDescription['swimsuit'] = char.get('charSwimsuit')
-        character.clothingDescription['work_clothes'] = char.get('charWorkClothes')
-        character.clothingDescription['casual_clothes'] = char.get('charCasualClothes')
+        if "underwear" in clothingList:
+            character.clothingDescription['underwear'] = char.get('charUnderwear')
+        if "swimsuit" in clothingList:
+            character.clothingDescription['swimsuit'] = char.get('charSwimsuit')
+        if "work_clothes" in clothingList:
+            character.clothingDescription['work_clothes'] = char.get('charWorkClothes')
+        if "casual_clothes" in clothingList:
+            character.clothingDescription['casual_clothes'] = char.get('charCasualClothes')
+        if "casual_clothes_2" in clothingList:
+            character.clothingDescription['casual_clothes_2'] = char.get('charCasualClothes2')
+        if "casual_clothes_3" in clothingList:
+            character.clothingDescription['casual_clothes_3'] = char.get('charCasualClothes3')
 
         if char.get('charRelationshipWPlayer') == "acquaintances":
             character.affection = 20
@@ -863,24 +1054,66 @@ def init():
         char.scheduleArray = schedule
         char.defaultScheduleArray = char.scheduleArray
 
-    emotions = [{"name": "neutral-happy", "description": "light smile"}, {"name": "laughing", "description": "laughing, open mouth"}, {"name": "sad", "description": "sad, frown"}, {"name": "angry", "description": "angry, fury"}, {"name": "embarrassed", "description": "embarrassed, blush, full-face blush"}]
+    emotions = []
+    if "neutral-happy" in emotionList:
+        emotions.append({"name": "neutral-happy", "description": "light smile"})
+    if "laughing" in emotionList:
+        emotions.append({"name": "laughing", "description": "laughing, open mouth"})
+    if "sad" in emotionList:
+        emotions.append({"name": "sad", "description": "sad, frown"})
+    if "angry" in emotionList:
+        emotions.append({"name": "angry", "description": "angry, fury"})
+    if "embarrassed" in emotionList:
+        emotions.append({"name": "embarrassed", "description": "embarrassed, blush, full-face blush"})
+    if "neutral-frown" in emotionList:
+        emotions.append({"name": "neutral-frown", "description": "light frown"})
+    if "excited" in emotionList:
+        emotions.append({"name": "excited", "description": "excited, open mouth"})
+    if "flushed" in emotionList:
+        emotions.append({"name": "flushed", "description": "embarrassed, light blush"})
+    if "disgusted" in emotionList:
+        emotions.append({"name": "disgusted", "description": "disgust, shaded face"})
 
     for char in charArrayDict:
         fixedSeed = random.randint(1, 2**32 - 1)
-        clothingStyles = [{"name": "nude", "description": "{{nsfw, completely nude, uncensored}}"}, {"name": "casual_clothes", "description": char['charCasualClothes']}, {"name": "work_clothes", "description": char['charWorkClothes']}, {"name": "swimsuit", "description": char['charSwimsuit']}, {"name": "underwear", "description": char['charUnderwear']}] 
+
+        clothingStyles = []
+        if "nude" in clothingList:
+            clothingStyles.append({"name": "nude", "description": "{{nsfw, completely nude, uncensored}}"})
+        if "underwear" in clothingList:
+            clothingStyles.append({"name": "underwear", "description": char['charUnderwear']})
+        if "swimsuit" in clothingList:
+            clothingStyles.append({"name": "swimsuit", "description": char['charSwimsuit']})
+        if "work_clothes" in clothingList:
+            clothingStyles.append({"name": "work_clothes", "description": char['charWorkClothes']})
+        if "casual_clothes" in clothingList:
+            clothingStyles.append({"name": "casual_clothes", "description": char['charCasualClothes']})
+        if "casual_clothes_2" in clothingList:
+            clothingStyles.append({"name": "casual_clothes_2", "description": char['charCasualClothes2']})
+        if "casual_clothes_3" in clothingList:
+            clothingStyles.append({"name": "casual_clothes_3", "description": char['charCasualClothes3']})
+ 
         for emotion in emotions:
             for clothes in clothingStyles:
-                subprocess.run(['python', 'generate_image_simplified.py', "{{{solo, white background, cowboy shot, straight-on, looking at viewer}}}, "+char['charFaceAndBody']+", "+clothes['description']+", "+emotion['description']+", "+style, str(output_dir)+"/charImages", "char_"+str(char['charNumber'])+"_"+clothes['name']+"_"+emotion['name'], 'True', str(fixedSeed)], capture_output=True, text=True)
-                subprocess.run(['python', 'trimWhite.py', str(output_dir)+"/charImages/char_"+str(char['charNumber'])+"_"+clothes['name']+"_"+emotion['name']+".png"], capture_output=True, text=True)
+                file_path_to_check = output_dir / "charImages" / f"char_{str(char['charNumber'])}_{clothes['name']}_{emotion['name']}.png"
+                if not os.path.isfile(file_path_to_check):
+                    subprocess.run(['python', 'generate_image_simplified.py', "{{{solo, white background, cowboy shot, straight-on, looking at viewer}}}, "+char['charFaceAndBody']+", "+clothes['description']+", "+emotion['description']+", "+style, str(output_dir)+"/charImages", "char_"+str(char['charNumber'])+"_"+clothes['name']+"_"+emotion['name'], 'True', str(fixedSeed)], capture_output=True, text=True)
+                    subprocess.run(['python', 'trimWhite.py', str(output_dir)+"/charImages/char_"+str(char['charNumber'])+"_"+clothes['name']+"_"+emotion['name']+".png"], capture_output=True, text=True)
 
     for location in locations:
+        file_path_to_check_day = output_dir / "locationImages" / f"location_{str(location['locationNumber'])}_day.png"
+        file_path_to_check_night = output_dir / "locationImages" / f"location_{str(location['locationNumber'])}_night.png"
         if location['isOutdoors']:
             fixedSeed = random.randint(1, 2**32 - 1)
-            subprocess.run(['python', 'generate_image_simplified.py', "{{{scenery, no humans, outdoors}}}, [[[[[day]]]]], "+location['locationName']+" "+location['locationTagDescription'], str(output_dir)+"/locationImages", "location_"+str(location['locationNumber'])+"_day", 'False', str(fixedSeed)], capture_output=True, text=True)
-            subprocess.run(['python', 'generate_image_simplified.py', "{{{scenery, no humans, outdoors}}}, [[[[[night]]]]], "+location['locationName']+" "+location['locationTagDescription'], str(output_dir)+"/locationImages", "location_"+str(location['locationNumber'])+"_night", 'False', str(fixedSeed)], capture_output=True, text=True)   
+            if not os.path.isfile(file_path_to_check_day):
+                subprocess.run(['python', 'generate_image_simplified.py', "{{{scenery, no humans, outdoors}}}, [[[[[day]]]]], "+location['locationName']+" "+location['locationTagDescription'], str(output_dir)+"/locationImages", "location_"+str(location['locationNumber'])+"_day", 'False', str(fixedSeed)], capture_output=True, text=True)
+            if not os.path.isfile(file_path_to_check_night):
+                subprocess.run(['python', 'generate_image_simplified.py', "{{{scenery, no humans, outdoors}}}, [[[[[night]]]]], "+location['locationName']+" "+location['locationTagDescription'], str(output_dir)+"/locationImages", "location_"+str(location['locationNumber'])+"_night", 'False', str(fixedSeed)], capture_output=True, text=True)   
         else:
-            subprocess.run(['python', 'generate_image_simplified.py', "{{{scenery, no humans, indoors}}}, [[[[[day]]]]], "+location['locationName']+" "+location['locationTagDescription'], str(output_dir)+"/locationImages", "location_"+str(location['locationNumber'])+"_day", 'False', str(fixedSeed)], capture_output=True, text=True)
-            subprocess.run(['python', 'generate_image_simplified.py', "{{{scenery, no humans, indoors}}}, [[[[[night]]]]], "+location['locationName']+" "+location['locationTagDescription'], str(output_dir)+"/locationImages", "location_"+str(location['locationNumber'])+"_night", 'False', str(fixedSeed)], capture_output=True, text=True)   
+            if not os.path.isfile(file_path_to_check_day):
+                subprocess.run(['python', 'generate_image_simplified.py', "{{{scenery, no humans, indoors}}}, [[[[[day]]]]], "+location['locationName']+" "+location['locationTagDescription'], str(output_dir)+"/locationImages", "location_"+str(location['locationNumber'])+"_day", 'False', str(fixedSeed)], capture_output=True, text=True)
+            if not os.path.isfile(file_path_to_check_night):
+                subprocess.run(['python', 'generate_image_simplified.py', "{{{scenery, no humans, indoors}}}, [[[[[night]]]]], "+location['locationName']+" "+location['locationTagDescription'], str(output_dir)+"/locationImages", "location_"+str(location['locationNumber'])+"_night", 'False', str(fixedSeed)], capture_output=True, text=True)   
 
     firstOutput = None
     time.sleep(sleepTime)
@@ -961,14 +1194,14 @@ def move_to():
         newContent = playerName+" moves from "+previousLocation+" to "+currentLocation+". "
         if len(charsNewlyMet) > 0:
             newContent += "The following new characters are present at that location. "
-            for char in charsNewlyMet:
-                newContent+=char.name+" (character number "+str(char.num)+") is performing the activity: "+char.currentActivity(minutes_from_time(currentTime)).activity+". Their current clothing is "+char.currentActivity(minutes_from_time(currentTime)).clothing+" ("+char.clothingDescription[char.currentActivity(minutes_from_time(currentTime)).clothing]+"). Their immediate plans are "+char.currentActivity(minutes_from_time(currentTime)).futurePlans+".\n"
+            for char in charsNewlyMet:                
+                newContent+=char.name+" (character number "+str(char.num)+") is performing the activity: "+char.currentActivity(minutes_from_time(currentTime)).activity+". Their current clothing is "+char.currentActivity(minutes_from_time(currentTime)).clothing+" ("+char.clothingDescription.get(char.currentActivity(minutes_from_time(currentTime)).clothing, "")+"). Their immediate plans are "+char.currentActivity(minutes_from_time(currentTime)).futurePlans+".\n"
         else:
             newContent+= "No characters are present at the new location."
         if len(charsAlreadyWithPlayer) > 0:
             newContent += "The following characters were present with "+playerName+" at the previous location. They may or may not still be present in the story."
             for char in charsAlreadyWithPlayer:
-                newContent += char.name+" (character number: "+str(char.num)+"). Their current clothing is "+char.clothing+" ("+char.clothingDescription[char.clothing]+"). Their immediate plans (if not already broken) are "+char.currentActivity(minutes_from_time(currentTime)).futurePlans+".\n"
+                newContent += char.name+" (character number: "+str(char.num)+"). Their current clothing is "+char.clothing+" ("+char.clothingDescription.get(char.clothing, "")+"). Their immediate plans (if not already broken) are "+char.currentActivity(minutes_from_time(currentTime)).futurePlans+".\n"
 
         charDescriptions = "Relevant character descriptions: "
         for char in charsAlreadyWithPlayer + charsNewlyMet:
@@ -1003,30 +1236,37 @@ def move_to():
         sendToAIJSON += storySoFar
         sendToAIJSON.append({"role": "system", "content": newContent})
 
+        clothingNamesStr = ""
+        for cloth in clothingList:
+            clothingNamesStr += (cloth + ", ")
+        clothingNamesStr = clothingNamesStr[:-2]
+
+        emotionNamesStr = ""
+        for emotion in emotionList:
+            emotionNamesStr += (emotion + ", ")
+        emotionNamesStr = emotionNamesStr[:-2]
+
         with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.json') as temp_file:
             json.dump(sendToAIJSON, temp_file)
             temp_file_path = temp_file.name
 
         AIresponse = None
         try:
-            AIresponse = subprocess.run(['python', 'gen_text_button.py', temp_file_path, model, jailbreak, prefill, str(boolRomanticProgression)], capture_output=True, text=True)
+            AIresponse = subprocess.run(['python', 'gen_text_button.py', temp_file_path, model, jailbreak, prefill, str(boolRomanticProgression), clothingNamesStr, emotionNamesStr], capture_output=True, text=True)
         finally:
             os.remove(temp_file_path)            
         rawOutput = AIresponse.stdout
-        textOutput = rawOutput.split("Output:")[1].strip()
+        textOutput = rawOutput.split("Output:")[1].split("END OUTPUT")[0].strip()
         storySoFar.append({"role": "system", "content": playerName+" moves to "+currentLocation+"."})
         storySoFar.append({"role": "assistant", "content": textOutput})
-
-        clothingStyles = ["nude", "underwear", "swimsuit", "casual_clothes", "work_clothes"]
-        emotions = ["neutral-happy", "laughing", "sad", "angry", "embarrassed"]
 
         for char in charArrayObj:
             if "Character Leaving: Character "+str(char.num) in rawOutput:
                 char.withPlayer = False
-            for clothing in clothingStyles:
+            for clothing in clothingList:
                 if "Character Change Clothes "+str(char.num)+": "+clothing in rawOutput:
                     char.clothing = clothing
-            for emotion in emotions:
+            for emotion in emotionList:
                 if "Character Emotion "+str(char.num)+": "+emotion in rawOutput:       
                     char.emotion = emotion
             if "Interaction Intimacy Rating "+str(char.num)+": " in rawOutput:
@@ -1162,12 +1402,12 @@ def send_prompt():
     if len(charsAlreadyWithPlayer) > 0:
         newContent += "The following characters have been present with "+playerName+". They may or may not still be present in the story."
         for char in charsAlreadyWithPlayer:
-            newContent += char.name+" (character number "+str(char.num)+"). Their current clothing is "+char.clothing+" ("+char.clothingDescription[char.clothing]+"). Their immediate plans (if not already broken) are "+char.currentActivity(minutes_from_time(currentTime)).futurePlans+".\n"
+            newContent += char.name+" (character number "+str(char.num)+"). Their current clothing is "+char.clothing+" ("+char.clothingDescription.get(char.clothing, "")+"). Their immediate plans (if not already broken) are "+char.currentActivity(minutes_from_time(currentTime)).futurePlans+".\n"
     if len(newArrivals) > 0:
         newContent += "The following characters have just arrived to the same place as "+playerName+"."
         for char in newArrivals:
             char.clothing = char.currentActivity(minutes_from_time(currentTime)).clothing
-            newContent += char.name+" (character number "+str(char.num)+") is performing (or about to perform) the activity: "+char.currentActivity(minutes_from_time(currentTime)).activity+". Their current clothing is "+char.currentActivity(minutes_from_time(currentTime)).clothing+" ("+char.clothingDescription[char.currentActivity(minutes_from_time(currentTime)).clothing]+"). Their immediate plans in the future are "+char.currentActivity(minutes_from_time(currentTime)).futurePlans+".\n" 
+            newContent += char.name+" (character number "+str(char.num)+") is performing (or about to perform) the activity: "+char.currentActivity(minutes_from_time(currentTime)).activity+". Their current clothing is "+char.currentActivity(minutes_from_time(currentTime)).clothing+" ("+char.clothingDescription.get(char.currentActivity(minutes_from_time(currentTime)).clothing, "")+"). Their immediate plans in the future are "+char.currentActivity(minutes_from_time(currentTime)).futurePlans+".\n" 
 
     charDescriptions = "Relevant character descriptions: "
     for char in charsAlreadyWithPlayer + newArrivals:
@@ -1199,33 +1439,40 @@ def send_prompt():
     sendToAIJSON += storySoFar
     sendToAIJSON.append({"role": "system", "content": newContent})
 
+    clothingNamesStr = ""
+    for cloth in clothingList:
+        clothingNamesStr += (cloth + ", ")
+    clothingNamesStr = clothingNamesStr[:-2]
+
+    emotionNamesStr = ""
+    for emotion in emotionList:
+        emotionNamesStr += (emotion + ", ")
+    emotionNamesStr = emotionNamesStr[:-2]
+
     with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.json') as temp_file:
         json.dump(sendToAIJSON, temp_file)
         temp_file_path = temp_file.name
 
     AIresponse = None
     try:
-        AIresponse = subprocess.run(['python', 'gen_text_prompt.py', temp_file_path, model, jailbreak, prefill, str(boolRomanticProgression)], capture_output=True, text=True)
+        AIresponse = subprocess.run(['python', 'gen_text_prompt.py', temp_file_path, model, jailbreak, prefill, str(boolRomanticProgression), clothingNamesStr, emotionNamesStr], capture_output=True, text=True)
     finally:
         os.remove(temp_file_path)
     rawOutput = AIresponse.stdout
-    textOutput = rawOutput.split("Output:")[1].strip()
+    textOutput = rawOutput.split("Output:")[1].split("END OUTPUT")[0].strip()
     storySoFar.append({"role": "assistant", "content": textOutput})
 
     currentOutput = textOutput
-
-    clothingStyles = ["nude", "underwear", "swimsuit", "casual_clothes", "work_clothes"]
-    emotions = ["neutral-happy", "laughing", "sad", "angry", "embarrassed"]
 
     for char in charArrayObj:
         if "Character Leaving: Character "+str(char.num) in rawOutput:
             char.withPlayer = False
         if not char.withPlayer:
             char.clothing = char.currentActivity(minutes_from_time(currentTime)).clothing
-        for clothing in clothingStyles:
+        for clothing in clothingList:
             if "Character Change Clothes "+str(char.num)+": "+clothing in rawOutput:
                 char.clothing = clothing
-        for emotion in emotions:
+        for emotion in emotionList:
             if "Character Emotion "+str(char.num)+": "+emotion in rawOutput:       
                 char.emotion = emotion
         if "Interaction Intimacy Rating "+str(char.num)+": " in rawOutput:
@@ -1277,6 +1524,9 @@ def save():
     fullSave['worldInfo'] = worldInfo
     fullSave['maxContextChars'] = maxContextChars
     fullSave['currentOutput'] = currentOutput
+
+    fullSave['clothingList'] = clothingList
+    fullSave['emotionList'] = emotionList
 
     fullSave['charArrayObj'] = []
     for char in charArrayObj:
@@ -1346,7 +1596,7 @@ def render_game_interface(textOutput, chars_html):
             document.getElementById('current-location').textContent = `Current Location: ${result.currentLocation}`;
             document.getElementById('text-output').innerHTML = `${result.textOutput}`;
             document.getElementById('buttons-container').innerHTML = result.buttons_html;
-            document.getElementById('prompt-textarea').textContent = ``;
+            document.getElementById('prompt-textarea').value = ``;
             document.getElementById('save-output').textContent = `If you aren't getting a response, just try resending. The AI may have screwed up the formatting.`;
             
             // Clear previous character images
@@ -1404,7 +1654,7 @@ def render_game_interface(textOutput, chars_html):
             document.getElementById('text-output').innerHTML = `${result.textOutput}`;
             document.getElementById('current-time').textContent = `Current Time: ${result.currentTime}`;
             document.getElementById('current-clothes').textContent = `Current Clothes: ${result.currentClothing}`;
-            document.getElementById('prompt-textarea').textContent = ``;
+            document.getElementById('prompt-textarea').value = ``;
             document.getElementById('save-output').textContent = `If you aren't getting a response, just try resending. The AI may have screwed up the formatting.`;
 
             // Clear previous character images
@@ -1467,6 +1717,7 @@ def render_game_interface(textOutput, chars_html):
             document.getElementById('current-time').textContent = `Current Time: ${result.currentTime}`;
             document.getElementById('wait-message').innerHTML = `${result.message}`;
             document.getElementById('text-output').innerHTML = `${result.textOutput}`;
+            document.getElementById('prompt-textarea').value = ``;
         });
     '''.strip()
 
@@ -1499,6 +1750,7 @@ def render_game_interface(textOutput, chars_html):
             document.getElementById('current-clothes').textContent = `Current Clothes: ${result.currentClothing}`;
             document.getElementById('wait-message').innerHTML = `${result.message}`;
             document.getElementById('save-output').textContent = `If you aren't getting a response, just try resending. The AI may have screwed up the formatting.`;
+            document.getElementById('prompt-textarea').value = ``;
 
             // Clear previous character images
             const charContainer = document.getElementById('char-container');
@@ -1773,7 +2025,7 @@ def render_game_interface(textOutput, chars_html):
 
 @app.route('/load', methods=['POST'])
 def load():
-    global playerName, playerDescription, output_dir, currentLocation, currentAdjacentLocations, currentClothing, currentTime, charArrayDict, charArrayWithPlayerNums, locationArray, allLocationsStr, adjacencyMatrix, storySoFar, worldInfo, maxContextChars, currentOutput, charArrayObj, boolRomanticProgression
+    global playerName, playerDescription, output_dir, currentLocation, currentAdjacentLocations, currentClothing, currentTime, charArrayDict, charArrayWithPlayerNums, locationArray, allLocationsStr, adjacencyMatrix, storySoFar, worldInfo, maxContextChars, currentOutput, charArrayObj, boolRomanticProgression, clothingList, emotionList
     refreshValues()
 
     playerName = request.json.get('playerName')
@@ -1794,6 +2046,9 @@ def load():
     worldInfo = request.json.get('worldInfo')
     maxContextChars = request.json.get('maxContextChars')
     currentOutput = request.json.get('currentOutput')
+
+    clothingList = request.json.get('clothingList', ["nude", "swimsuit", "underwear", "casual_clothes", "work_clothes"])
+    emotionList = request.json.get('emotionList', ["neutral-happy", "sad", "angry", "laughing", "embarrassed"])
 
     charArrayObj = []
     for char in request.json.get('charArrayObj'):
@@ -1975,12 +2230,12 @@ def wait_interrupted():
             if len(charsAlreadyWithPlayer) > 0:
                 newContent += "The following characters have been present with "+playerName+". They may or may not still be present in the story."
                 for char in charsAlreadyWithPlayer:
-                    newContent += char.name+" (character number "+str(char.num)+"). Their current clothing is "+char.clothing+" ("+char.clothingDescription[char.clothing]+"). Their immediate plans (if not already broken) are "+char.currentActivity(minutes_from_time(currentTime)).futurePlans+".\n"
+                    newContent += char.name+" (character number "+str(char.num)+"). Their current clothing is "+char.clothing+" ("+char.clothingDescription.get(char.clothing, "")+"). Their immediate plans (if not already broken) are "+char.currentActivity(minutes_from_time(currentTime)).futurePlans+".\n"
             if len(newArrivals) > 0:
                 newContent += "The following characters have just arrived to the same place as "+playerName+" while they were waiting."
                 for char in newArrivals:
                     char.clothing = char.currentActivity(minutes_from_time(currentTime)).clothing
-                    newContent += char.name+" (character number "+str(char.num)+") is performing (or about to perform) the activity: "+char.currentActivity(minutes_from_time(currentTime)).activity+". Their current clothing is "+char.currentActivity(minutes_from_time(currentTime)).clothing+" ("+char.clothingDescription[char.currentActivity(minutes_from_time(currentTime)).clothing]+"). Their immediate plans in the future are "+char.currentActivity(minutes_from_time(currentTime)).futurePlans+".\n" 
+                    newContent += char.name+" (character number "+str(char.num)+") is performing (or about to perform) the activity: "+char.currentActivity(minutes_from_time(currentTime)).activity+". Their current clothing is "+char.currentActivity(minutes_from_time(currentTime)).clothing+" ("+char.clothingDescription.get(char.currentActivity(minutes_from_time(currentTime)).clothing, "")+"). Their immediate plans in the future are "+char.currentActivity(minutes_from_time(currentTime)).futurePlans+".\n" 
 
             charDescriptions = "Relevant character descriptions: "
             for char in charsAlreadyWithPlayer + newArrivals:
@@ -2012,33 +2267,40 @@ def wait_interrupted():
             sendToAIJSON += storySoFar
             sendToAIJSON.append({"role": "system", "content": newContent})
 
+            clothingNamesStr = ""
+            for cloth in clothingList:
+                clothingNamesStr += (cloth + ", ")
+            clothingNamesStr = clothingNamesStr[:-2]
+
+            emotionNamesStr = ""
+            for emotion in emotionList:
+                emotionNamesStr += (emotion + ", ")
+            emotionNamesStr = emotionNamesStr[:-2]
+ 
             with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.json') as temp_file:
                 json.dump(sendToAIJSON, temp_file)
                 temp_file_path = temp_file.name
 
             AIresponse = None
             try:
-                AIresponse = subprocess.run(['python', 'gen_text_prompt.py', temp_file_path, model, jailbreak, prefill, str(boolRomanticProgression)], capture_output=True, text=True)
+                AIresponse = subprocess.run(['python', 'gen_text_prompt.py', temp_file_path, model, jailbreak, prefill, str(boolRomanticProgression), clothingNamesStr, emotionNamesStr], capture_output=True, text=True)
             finally:
                 os.remove(temp_file_path)
             rawOutput = AIresponse.stdout
-            textOutput = rawOutput.split("Output:")[1].strip()
+            textOutput = rawOutput.split("Output:")[1].split("END OUTPUT")[0].strip()
             storySoFar.append({"role": "assistant", "content": textOutput})
 
             currentOutput = textOutput
-
-            clothingStyles = ["nude", "underwear", "swimsuit", "casual_clothes", "work_clothes"]
-            emotions = ["neutral-happy", "laughing", "sad", "angry", "embarrassed"]
 
             for char in charArrayObj:
                 if "Character Leaving: Character "+str(char.num) in rawOutput:
                     char.withPlayer = False
                 if not char.withPlayer:
                     char.clothing = char.currentActivity(minutes_from_time(currentTime)).clothing
-                for clothing in clothingStyles:
+                for clothing in clothingList:
                     if "Character Change Clothes "+str(char.num)+": "+clothing in rawOutput:
                         char.clothing = clothing
-                for emotion in emotions:
+                for emotion in emotionList:
                     if "Character Emotion "+str(char.num)+": "+emotion in rawOutput:       
                         char.emotion = emotion
                 if "Interaction Intimacy Rating "+str(char.num)+": " in rawOutput:

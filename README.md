@@ -3,10 +3,10 @@
 - Combines the freedom of AI chat roleplaying with the structure of a pre-programmed visual novel.
 - Use a GPT or Claude API key for text generation and a NovelAI account for image generation.
 - Run start.bat, let it install the dependencies, then open 127.0.0.1:5000 in your browser of choice.
-- New generations will be created in generated_VNs/world_N as soon as you hit 'Submit'; you can see the progress of file generation there.
-- If something breaks during generation, unfortunately you'll have to restart. This only really tends to happen at the very start if the AI's JSON isn't formatted properly; all the more reason to keep an eye on the world folder as it's generating.
-- As a baseline, expect ~1 hr generation time for a 5-character VN; image generation isn't that fast and there's lots to make.
-- If you change the name of the world_N folder, be sure to also change the output_dir in any save files it contains.
+- New generations will be created in generated_VNs/[your chosen world name] as soon as you hit 'Submit'; you can see the progress of file generation there.
+- The generation process is segmented; start by filling out the form and clicking Step 1. When Step 1 finishes generating, a message will appear to that effect below the button, at which point you should check the generated file and move on to Step 2, etc.
+- The final step (Step 4) is image generation, which takes by far the longest. As a baseline, expect ~1 hr generation time for a VN with 5 characters, 5 emotions, and 5 clothing styles; image generation isn't that fast and there's lots to make.
+- If you change the name of the world folder, be sure to also change the output_dir in any save files it contains.
 - Save files don't contain API keys or passwords; you can share generated VNs just by sharing the world folders.
 
 ## Image Generation
