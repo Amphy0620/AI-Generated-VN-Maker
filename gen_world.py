@@ -34,7 +34,7 @@ def gen_world(prompt, output_dir, jailbreak, model):
     }
 
     if isClaude:
-        inputArray.append({"role": "assistant", "content": "{"})
+#        inputArray.append({"role": "assistant", "content": "{"})
         inputArray = process_json_array(inputArray)
         data['messages'] = inputArray
         data['max_tokens'] = 4096
@@ -45,8 +45,8 @@ def gen_world(prompt, output_dir, jailbreak, model):
         
     response = requests.post(url, headers=headers, json=data)
     response_content = ""
-    if isClaude:
-        response_content = "{"
+#    if isClaude:
+#        response_content = "{"
 
     if isClaude:
         if response.status_code == 200:
