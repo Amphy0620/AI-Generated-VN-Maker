@@ -60,6 +60,7 @@ class Character:
         self.emotion = "neutral-happy"
         self.clothingDescription = {"charFaceAndBody": ""}
         self.color = None
+        self.timeToResetSchedule = -1
     def currentActivity(self, currentTimeMins):
         for i in range(len(self.scheduleArray)):
             current_activity = self.scheduleArray[i]
@@ -541,13 +542,15 @@ worldInfo = ""
 maxContextChars = 120000
 maxGensPerMinute = 3
 currentOutput = ""
+currentOutputEntry = 0
 boolRomanticProgression = False
 model = None
 clothingList = []
 emotionList = []
+randomEventArray = []
 
 def refreshValues():
-    global playerName, playerDescription, output_dir, currentLocation, currentAdjacentLocations, currentClothing, currentTime, charArrayDict, charArrayWithPlayerNums, locationArray, allLocationsStr, adjacencyMatrix, storySoFar, worldInfo, maxContextChars, currentOutput, charArrayObj, boolRomanticProgression
+    global playerName, playerDescription, output_dir, currentLocation, currentAdjacentLocations, currentClothing, currentTime, charArrayDict, charArrayWithPlayerNums, locationArray, allLocationsStr, adjacencyMatrix, storySoFar, worldInfo, maxContextChars, currentOutput, charArrayObj, boolRomanticProgression, currentOutputEntry
     playerName = ""
     playerDescription = ""
     promptOpener = ""
@@ -567,6 +570,7 @@ def refreshValues():
     maxContextChars = 120000
     maxGensPerMinute = 3
     currentOutput = ""
+    currentOutputEntry = 0
     boolRomanticProgression = False
     clothingList = []
     emotionList = []    
@@ -1067,6 +1071,7 @@ def init():
         character.name = char.get('charName')
         character.personality = char.get('charPersonality')
         character.color = char.get('charColorCode')
+        char.timeToResetSchedule = -1
         character.clothingDescription['charFaceAndBody'] = char.get('charFaceAndBody')
         if "underwear" in clothingList:
             character.clothingDescription['underwear'] = char.get('charUnderwear')
@@ -1207,9 +1212,10 @@ def move_to():
     if len(proxyPassword) > 0:
         os.environ['proxy_password'] = proxyPassword
 
-    global currentLocation, currentAdjacentLocations, currentTime, currentClothing, backgroundFile, currentTime, charArrayObj, charArrayWithPlayerNums, storySoFar, promptOpener, maxContextChars, currentOutput
+    global currentLocation, currentAdjacentLocations, currentTime, currentClothing, backgroundFile, currentTime, charArrayObj, charArrayWithPlayerNums, storySoFar, promptOpener, maxContextChars, currentOutput, currentOutputEntry
     textOutput = ""
-   
+    currentOutputEntry = 0   
+
     if len(maxChars) > 0:
         maxContextChars = maxChars
 
@@ -1400,15 +1406,18 @@ def move_to():
     '''.strip()
 
     currentOutput = textOutput
-
+    showRightArrow = 0
+    if '//' in currentOutput:
+        showRightArrow = 1
 
     return jsonify({
         'currentTime': currentTime,
         'currentClothing': currentClothing,
         'currentLocation': currentLocation,
-        'textOutput': textOutput,
+        'textOutput': currentOutput.split('//')[0],
         'backgroundFilePath': backgroundFileStr,
         'charsToShow': charArrayWithPlayerFileLocations,
+        'showRightArrow': showRightArrow,
         'buttons_html': ''.join(
             f'<button type="button" class="move-button" data-location="{location}" onclick="{move_to_location_script.replace("{location}", location)}">{location}</button>'
             for location in currentAdjacentLocations
@@ -1417,7 +1426,9 @@ def move_to():
 
 @app.route('/send_prompt', methods=['POST'])
 def send_prompt():
-    global currentLocation, currentAdjacentLocations, currentTime, currentClothing, currentTime, charArrayObj, charArrayWithPlayerNums, storySoFar, promptOpener, maxContextChars, currentOutput
+    global currentLocation, currentAdjacentLocations, currentTime, currentClothing, currentTime, charArrayObj, charArrayWithPlayerNums, storySoFar, promptOpener, maxContextChars, currentOutput, currentOutputEntry
+
+    currentOutputEntry = 0
 
     prompt_text = request.json.get('prompt')
     jailbreak = request.json.get('jailbreak')
@@ -1549,10 +1560,14 @@ def send_prompt():
                 charImgLocationStr = str(url_for('static', filename = charImgLocation))
                 charArrayWithPlayerFileLocations.append(charImgLocationStr)
 
+    showRightArrow = 0
+    if '//' in currentOutput:
+        showRightArrow = 1
 
     return jsonify({'currentTime': currentTime,
         'currentClothing': currentClothing,
-        'textOutput': textOutput,
+        'textOutput': currentOutput.split('//')[0],
+        'showRightArrow': showRightArrow,
         'charsToShow': charArrayWithPlayerFileLocations
     })
 
@@ -1577,6 +1592,7 @@ def save():
     fullSave['worldInfo'] = worldInfo
     fullSave['maxContextChars'] = maxContextChars
     fullSave['currentOutput'] = currentOutput
+    fullSave['randomEventArray'] = randomEventArray
 
     fullSave['clothingList'] = clothingList
     fullSave['emotionList'] = emotionList
@@ -1595,6 +1611,7 @@ def save():
         addChar['emotion'] = char.emotion
         addChar['color'] = char.color
         addChar['clothingDescription'] = char.clothingDescription
+        addChar['timeToResetSchedule'] = char.timeToResetSchedule
         fullSave['charArrayObj'].append(addChar)
 
     saves_dir = output_dir / "saves"
@@ -1613,11 +1630,55 @@ def save():
 
     return jsonify({'saveName': str(save_file)})
 
+@app.route('/toggle_text', methods=['POST'])
+def toggle_text():
+    global currentOutput, currentOutputEntry
+    jsonOutput = {}
+    splitOutput = currentOutput.split('//')
+    leftOrRight = request.json.get('leftOrRight')
+
+    if leftOrRight == "left":
+        if currentOutputEntry == 0:
+            jsonOutput['textOutput'] = splitOutput[currentOutputEntry].strip()
+            jsonOutput['showLeft'] = 0
+            if currentOutputEntry < len(splitOutput) - 1:
+                jsonOutput['showRight'] = 1
+            else:
+                jsonOutput['showRight'] = 0
+        else:
+            currentOutputEntry -= 1
+            jsonOutput['textOutput'] = splitOutput[currentOutputEntry].strip()
+            if currentOutputEntry == 0:
+                jsonOutput['showLeft'] = 0
+            else:
+                jsonOutput['showLeft'] = 1
+            jsonOutput['showRight'] = 1            
+
+    else:
+        if currentOutputEntry == len(splitOutput) - 1:
+            jsonOutput['textOutput'] = splitOutput[currentOutputEntry].strip()
+            jsonOutput['showRight'] = 0
+            if currentOutputEntry > 0:
+                jsonOutput['showLeft'] = 1
+            else:
+                jsonOutput['showLeft'] = 0
+        else:
+            currentOutputEntry += 1
+            jsonOutput['textOutput'] = splitOutput[currentOutputEntry].strip()
+            if currentOutputEntry == len(splitOutput) - 1:
+                jsonOutput['showRight'] = 0
+            else:
+                jsonOutput['showRight'] = 1
+            jsonOutput['showLeft'] = 1
+
+    return jsonOutput
+
 def render_game_interface(textOutput, chars_html):
     backgroundFile = None
     for loc in locationArray:
         if loc['locationName'] == currentLocation:
-            backgroundFile = getBackgroundFilePath(output_dir, loc, minutes_from_time(currentTime))    
+            backgroundFile = getBackgroundFilePath(output_dir, loc, minutes_from_time(currentTime))
+    textOutput0 = textOutput.split('//')[0]
 
     move_to_location_script = '''
         const promptText = document.getElementById('prompt-textarea').value;
@@ -1651,6 +1712,13 @@ def render_game_interface(textOutput, chars_html):
             document.getElementById('buttons-container').innerHTML = result.buttons_html;
             document.getElementById('prompt-textarea').value = ``;
             document.getElementById('save-output').textContent = `If you aren't getting a response, just try resending. The AI may have screwed up the formatting.`;
+            document.getElementById('button-left').style.display = `none`;
+            if(result.showRightArrow == 0){
+                document.getElementById('button-right').style.display = `none`;
+            }
+            else{
+                document.getElementById('button-right').style.display = `inline-block`;
+            }
             
             // Clear previous character images
             const charContainer = document.getElementById('char-container');
@@ -1709,7 +1777,14 @@ def render_game_interface(textOutput, chars_html):
             document.getElementById('current-clothes').textContent = `Current Clothes: ${result.currentClothing}`;
             document.getElementById('prompt-textarea').value = ``;
             document.getElementById('save-output').textContent = `If you aren't getting a response, just try resending. The AI may have screwed up the formatting.`;
-
+            document.getElementById('button-left').style.display = `none`;
+            if(result.showRightArrow == 0){
+                document.getElementById('button-right').style.display = `none`;
+            }
+            else{
+                document.getElementById('button-right').style.display = `inline-block`;
+            }
+   
             // Clear previous character images
             const charContainer = document.getElementById('char-container');
             while (charContainer.firstChild) {
@@ -1771,6 +1846,8 @@ def render_game_interface(textOutput, chars_html):
             document.getElementById('wait-message').innerHTML = `${result.message}`;
             document.getElementById('text-output').innerHTML = `${result.textOutput}`;
             document.getElementById('prompt-textarea').value = ``;
+            document.getElementById('button-left').style.display = `none`;
+            document.getElementById('button-right').style.display = `none`;
         });
     '''.strip()
 
@@ -1804,6 +1881,13 @@ def render_game_interface(textOutput, chars_html):
             document.getElementById('wait-message').innerHTML = `${result.message}`;
             document.getElementById('save-output').textContent = `If you aren't getting a response, just try resending. The AI may have screwed up the formatting.`;
             document.getElementById('prompt-textarea').value = ``;
+            document.getElementById('button-left').style.display = `none`;
+            if(result.showRightArrow == 0){
+                document.getElementById('button-right').style.display = `none`;
+            }
+            else{
+                document.getElementById('button-right').style.display = `inline-block`;
+            }
 
             // Clear previous character images
             const charContainer = document.getElementById('char-container');
@@ -1830,6 +1914,58 @@ def render_game_interface(textOutput, chars_html):
                 img.style.left = `${startX + imgWidth * index}px`;
                 charContainer.appendChild(img);
             });
+        });
+    '''.strip()
+
+    button_left_script = '''
+        fetch('/toggle_text', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ leftOrRight: `left`
+            })
+        }).then(response => response.json())
+        .then(result => {
+            document.getElementById('text-output').innerHTML = `${result.textOutput}`;
+            if(result.showLeft == 1){
+                document.getElementById('button-left').style.display = `inline-block`
+            }
+            else{
+                document.getElementById('button-left').style.display = `none`
+            }
+            if(result.showRight == 1){
+                document.getElementById('button-right').style.display = `inline-block`
+            }
+            else{
+                document.getElementById('button-right').style.display = `none`
+            }                   
+        });
+    '''.strip()
+
+    button_right_script = '''
+        fetch('/toggle_text', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ leftOrRight: `right`
+            })
+        }).then(response => response.json())
+        .then(result => {
+            document.getElementById('text-output').innerHTML = `${result.textOutput}`;
+            if(result.showLeft == 1){
+                document.getElementById('button-left').style.display = `inline-block`
+            }
+            else{
+                document.getElementById('button-left').style.display = `none`
+            }
+            if(result.showRight == 1){
+                document.getElementById('button-right').style.display = `inline-block`
+            }
+            else{
+                document.getElementById('button-right').style.display = `none`
+            }                   
         });
     '''.strip()
 
@@ -1877,6 +2013,28 @@ def render_game_interface(textOutput, chars_html):
                 font-family: 'Open Sans', sans-serif; /* Readable font */
                 font-size: 0.8em; /* Slightly smaller font size */
                 text-shadow: 2px 2px 4px black; /* Black outline for text */
+            }}
+            .nav-button {{
+                position: absolute;
+                bottom: 14.5%;
+                width: 30px;
+                height: 30px;
+                background: rgba(0, 51, 102, 0.8); /* Same blue color */
+                color: white;
+                border: none;
+                border-radius: 5px;
+                font-size: 1.5em;
+                cursor: pointer;
+                text-align: center;
+                line-height: 30px; /* Center text vertically */
+                transform: translateY(-50%); /* Adjust for vertical centering */
+            }}
+            .nav-button.left {{
+                left: calc(16.67% - 35px);
+                display: none;
+            }}
+            .nav-button.right {{
+                left: calc(83.33% + 25px);
             }}
             .bottom-container {{
                 position: absolute;
@@ -1955,6 +2113,11 @@ def render_game_interface(textOutput, chars_html):
         <div class="image-container">
             <img src="{backgroundFilePath}" alt="Landscape Image" id="background-image">
             <div id="char-container" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none;">{chars_html}</div>
+            <div class="bottom-container">
+                <p id="text-output">{textOutput}</p>
+            </div>
+            <button class="nav-button left" onclick="{button_left_script}" id="button-left">&lt;</button>
+            <button class="nav-button right" onclick="{button_right_script}" id="button-right">&gt;</button>
             <div class="info-container" id="info-container">
                 <p id="current-time">Current Time: {currentTime}</p>
                 <p id="current-clothes">Current Clothes: {currentClothing}</p>
@@ -1962,9 +2125,6 @@ def render_game_interface(textOutput, chars_html):
                 <div class="buttons-container" id="buttons-container">
                     {buttons_html}
                 </div>
-            </div>
-            <div class="bottom-container">
-                <p id="text-output">{textOutput}</p>
             </div>
         </div>
         <div class="input-container">
@@ -2062,7 +2222,7 @@ def render_game_interface(textOutput, chars_html):
         currentClothing=currentClothing,
         currentLocation=currentLocation,
         backgroundFilePath=backgroundFilePath,
-        textOutput=textOutput,
+        textOutput=textOutput0,
         buttons_html=buttons_html,
         send_prompt_script=send_prompt_script,
         save_script=save_script,
@@ -2072,13 +2232,15 @@ def render_game_interface(textOutput, chars_html):
         given_url = os.getenv('proxy_url', ''),
         given_password = os.getenv('proxy_password', ''),
         model = model if model is not None else "gpt-4o",
-        maxContext = maxContextChars
+        maxContext = maxContextChars,
+        button_left_script=button_left_script,
+        button_right_script=button_right_script
     )
     return jsonify({'new_html': new_html_content})
 
 @app.route('/load', methods=['POST'])
 def load():
-    global playerName, playerDescription, output_dir, currentLocation, currentAdjacentLocations, currentClothing, currentTime, charArrayDict, charArrayWithPlayerNums, locationArray, allLocationsStr, adjacencyMatrix, storySoFar, worldInfo, maxContextChars, currentOutput, charArrayObj, boolRomanticProgression, clothingList, emotionList
+    global playerName, playerDescription, output_dir, currentLocation, currentAdjacentLocations, currentClothing, currentTime, charArrayDict, charArrayWithPlayerNums, locationArray, allLocationsStr, adjacencyMatrix, storySoFar, worldInfo, maxContextChars, currentOutput, charArrayObj, boolRomanticProgression, clothingList, emotionList, randomEventArray, currentOutputEntry
     refreshValues()
 
     playerName = request.json.get('playerName')
@@ -2099,6 +2261,7 @@ def load():
     worldInfo = request.json.get('worldInfo')
     maxContextChars = request.json.get('maxContextChars')
     currentOutput = request.json.get('currentOutput')
+    randomEventArray = request.json.get('randomEventArray', [])
 
     clothingList = request.json.get('clothingList', ["nude", "swimsuit", "underwear", "casual_clothes", "work_clothes"])
     emotionList = request.json.get('emotionList', ["neutral-happy", "sad", "angry", "laughing", "embarrassed"])
@@ -2116,6 +2279,7 @@ def load():
         character.emotion = char['emotion']
         character.color = char['color']
         character.clothingDescription = char['clothingDescription']
+        character.timeToResetSchedule = char.get('timeToResetSchedule', -1)
         charArrayObj.append(character)
 
     backgroundFilePath = None
@@ -2260,6 +2424,7 @@ def wait_interrupted():
                 'message': "",
                 'textOutput': currentOutput,
                 'currentClothing': currentClothing,
+                'showRightArrow': "false",
                 'charsToShow': []
             })
 
@@ -2377,10 +2542,14 @@ def wait_interrupted():
                         charImgLocationStr = str(url_for('static', filename = charImgLocation))
                         charArrayWithPlayerFileLocations.append(charImgLocationStr)
 
+            showRightArrow = 0
+            if '//' in currentOutput:
+                showRightArrow = 1
 
             return jsonify({'currentTime': currentTime,
                 'currentClothing': currentClothing,
                 'textOutput': textOutput,
+                'showRightArrow': showRightArrow,
                 'charsToShow': charArrayWithPlayerFileLocations,
                 'message': ""
             })                 
