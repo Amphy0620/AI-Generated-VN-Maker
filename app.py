@@ -2548,7 +2548,7 @@ def wait_interrupted():
 
             return jsonify({'currentTime': currentTime,
                 'currentClothing': currentClothing,
-                'textOutput': textOutput,
+                'textOutput': currentOutput.split('//')[0],
                 'showRightArrow': showRightArrow,
                 'charsToShow': charArrayWithPlayerFileLocations,
                 'message': ""
