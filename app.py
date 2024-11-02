@@ -60,7 +60,7 @@ class Character:
         self.emotion = "neutral-happy"
         self.clothingDescription = {"charFaceAndBody": ""}
         self.color = None
-        self.timeToResetSchedule = -1
+#        self.timeToResetSchedule = -1
     def currentActivity(self, currentTimeMins):
         for i in range(len(self.scheduleArray)):
             current_activity = self.scheduleArray[i]
@@ -733,6 +733,14 @@ def gen_world():
             finally:
                 os.remove(temp_file_charsSoFar_path)
 
+    except ValueError as ve:
+        app.logger.error("ValueError: %s", ve)
+        return jsonify(error=str(ve)), 400
+
+    except Exception as e:
+        app.logger.error("Unhandled Exception in /your-endpoint: %s", e)
+        return jsonify(error="Internal Server Error"), 500
+
     finally:
         os.remove(temp_file_prompt_path)
         os.remove(temp_file_worldJB_path) 
@@ -1071,7 +1079,7 @@ def init():
         character.name = char.get('charName')
         character.personality = char.get('charPersonality')
         character.color = char.get('charColorCode')
-        char.timeToResetSchedule = -1
+#        char.timeToResetSchedule = -1
         character.clothingDescription['charFaceAndBody'] = char.get('charFaceAndBody')
         if "underwear" in clothingList:
             character.clothingDescription['underwear'] = char.get('charUnderwear')

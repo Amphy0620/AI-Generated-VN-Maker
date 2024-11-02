@@ -11,6 +11,7 @@ from basic_functions import process_json_array
 from prompts import gen_world_prompt
 
 def gen_world(prompt, output_dir, jailbreak, model):
+    print("We're here!")
     output_path = Path(output_dir)
     output_path.mkdir(exist_ok=True)
 
@@ -30,7 +31,8 @@ def gen_world(prompt, output_dir, jailbreak, model):
     data = {
         "model": model,
         "stream": True,
-        "messages": inputArray
+        "messages": inputArray,
+        "max_tokens": 4096
     }
 
     if isClaude:
@@ -40,11 +42,12 @@ def gen_world(prompt, output_dir, jailbreak, model):
         data['max_tokens'] = 4096
         url = os.getenv('proxy_url_claude')
 
-    else:
-        url = os.getenv('proxy_url_gpt')        
+#    else:
+#        url = os.getenv('proxy_url_gpt')     
         
     response = requests.post(url, headers=headers, json=data)
     response_content = ""
+
 #    if isClaude:
 #        response_content = "{"
 
@@ -84,7 +87,7 @@ def gen_world(prompt, output_dir, jailbreak, model):
                 f.write(response_content)
 
 if __name__ == "__main__":
-    if len(sys.argv) > 8:
+    if len(sys.argv) == 9:
         with open(sys.argv[1], 'r') as f:
             playerInput = f.read()
         output_dir = sys.argv[2]
@@ -95,6 +98,21 @@ if __name__ == "__main__":
         model = sys.argv[6]
         clothingLabelsStr = sys.argv[7]
         isCharWorkClothes = sys.argv[8]
+        prompt_modified = gen_world_prompt(playerInput, clothingLabelsStr, isCharWorkClothes)
+        prompt_modified += f" Begin with exactly {numMales} male characters and {numFemales} female characters in this output."
+        response_data = gen_world(prompt_modified, output_dir, jailbreak, model)
+
+    else:
+        with open(sys.argv[2], 'r') as f:
+            playerInput = f.read()
+        output_dir = sys.argv[3]
+        with open(sys.argv[4], 'r') as f:
+            jailbreak = f.read()
+        numMales = sys.argv[5]
+        numFemales = sys.argv[6]
+        model = sys.argv[7]
+        clothingLabelsStr = sys.argv[8]
+        isCharWorkClothes = sys.argv[9]
         prompt_modified = gen_world_prompt(playerInput, clothingLabelsStr, isCharWorkClothes)
         prompt_modified += f" Begin with exactly {numMales} male characters and {numFemales} female characters in this output."
         response_data = gen_world(prompt_modified, output_dir, jailbreak, model)

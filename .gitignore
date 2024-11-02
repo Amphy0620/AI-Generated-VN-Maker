@@ -29,3 +29,10 @@ myenv/
 venv/
 
 generated_VNs/
+
+adjacency_matrix.json
+app0.py
+hello.txt
+graph_with_images.svg
+location_array.json
+create_map.py

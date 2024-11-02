@@ -1,6 +1,15 @@
 from pathlib import Path
 import numpy as np
 import json
+#import matplotlib.pyplot as plt
+#import matplotlib.image as mpimg
+#from matplotlib.offsetbox import OffsetImage, AnnotationBbox
+#import networkx as nx
+#import matplotlib.patheffects as PathEffects
+#import base64
+#from io import BytesIO
+#from lxml import etree
+#from matplotlib.patches import Rectangle
 
 def get_next_world_folder():
     base_dir = Path("generated_VNs")
@@ -217,3 +226,138 @@ def process_json_array(json_array):
         })
 
     return processed_array
+
+def scheduleMerge(initialSchedule, insertSchedule):
+    def minutes_from_time(time_str):
+        hours, minutes = map(int, time_str.split(':'))
+        return hours * 60 + minutes
+
+    def time_from_minutes(minutes):
+        hours = (minutes // 60) % 24
+        minutes = minutes % 60
+        return f"{hours:02}:{minutes:02}"
+
+    # Add "firstEntry": "Yes" to the first entry in insertSchedule
+    if insertSchedule:
+        insertSchedule[0]["firstEntry"] = "Yes"
+
+    # Capture the endTime from the insertSchedule
+    insert_end_time = insertSchedule[-1].get('endTime')
+    if insert_end_time is None:
+        raise ValueError("End time missing from insertSchedule")
+
+    insert_end_minutes = minutes_from_time(insert_end_time)
+    
+    # Find the event in the initial schedule that should resume
+    resume_event = None
+    for event in initialSchedule:
+        event_start_time = minutes_from_time(event['startTime'])
+        if event_start_time < insert_end_minutes:
+            resume_event = event
+
+    # Merge schedules
+    mergedSchedule = []
+    i, j = 0, 0
+    initial_len = len(initialSchedule)
+    insert_len = len(insertSchedule)
+
+    while i < initial_len and j < insert_len:
+        initial_start = minutes_from_time(initialSchedule[i]['startTime'])
+        insert_start = minutes_from_time(insertSchedule[j]['startTime'])
+
+        if initial_start < insert_start:
+            mergedSchedule.append(initialSchedule[i])
+            i += 1
+        else:
+            mergedSchedule.append(insertSchedule[j])
+            j += 1
+
+    # Append any remaining events from both schedules
+    while i < initial_len:
+        mergedSchedule.append(initialSchedule[i])
+        i += 1
+
+    while j < insert_len:
+        mergedSchedule.append(insertSchedule[j])
+        j += 1
+
+    # Ensure the event resumes at the insert_end_time
+    if resume_event:
+        resumed_event = {k: v for k, v in resume_event.items()}  # Create a new dictionary manually
+        resumed_event['startTime'] = insert_end_time
+        mergedSchedule.append(resumed_event)
+
+    # Sort the merged schedule by startTime
+    mergedSchedule.sort(key=lambda event: minutes_from_time(event['startTime']))
+
+    # Update the entry before the firstEntry
+    for index, event in enumerate(mergedSchedule):
+        if "firstEntry" in event:
+            if index > 0:
+                prev_event = mergedSchedule[index - 1]
+                prev_event["future_plans"] = f"At {event['startTime']}, at {event['location']}: planning on {event['activity']}, medium priority"
+            break
+
+    # Update the entry with endTime
+    for index, event in enumerate(mergedSchedule):
+        if "endTime" in event:
+            if index < len(mergedSchedule) - 1:
+                next_event = mergedSchedule[index + 1]
+                event["future_plans"] = f"At {next_event['startTime']}, at {next_event['location']}: planning on {next_event['activity']}, medium priority"
+
+    # Remove "firstEntry" and "endTime" attributes
+    for event in mergedSchedule:
+        event.pop("firstEntry", None)
+        event.pop("endTime", None)
+
+    return mergedSchedule
+
+#def add_image_at_node(ax, pos, node_label, image_file, zoom, rect_id, rectangles_by_coords):
+#    """Function to add image corresponding to a node at the node's position."""
+#    image = mpimg.imread(image_file)
+#    imagebox = OffsetImage(image, zoom=zoom, interpolation='bicubic')  # Adjust zoom to scale image size
+#    ab = AnnotationBbox(imagebox, pos, frameon=False)
+#    ax.add_artist(ab)
+
+#    image_height, image_width, _ = image.shape
+#    image_width *= zoom
+#    image_height *= zoom
+    
+#    rect = Rectangle(
+#        (pos[0] - image_width / 2, pos[1] - image_height / 2),  # Bottom-left corner position
+#        image_width,  # Width
+#        image_height,  # Height
+#        linewidth=1, edgecolor='black', facecolor='none'
+#    )
+
+#    ax.add_patch(rect)
+#    rectangles_by_coords[rect_id] = [rect.get_x(), rect.get_y()]
+
+#def add_outlined_text(ax, x, y, text, fontsize=12):
+#    """Function to add white text with a black outline."""
+#    txt = ax.text(x, y, text, fontsize=fontsize, color='white', ha='center', va='center')
+#    # Add the black outline using PathEffects
+#    txt.set_path_effects([PathEffects.withStroke(linewidth=3, foreground='black')])
+
+#def create_map(output_dir, locationArray, adjacencyMatrix, rectangles_by_coords):
+#    adjacencyMatrix = np.array(adjacencyMatrix, dtype=int)
+#    G = nx.from_numpy_array(adjacencyMatrix)
+#  
+#    pos = nx.kamada_kawai_layout(G, scale=20.0)
+#
+#    n = 1.5*len(adjacencyMatrix)
+#    fig, ax = plt.subplots(figsize=(n, n))
+
+#    nx.draw_networkx_edges(G, pos, ax=ax, edge_color='gray', width=3.0)
+    
+#    for node in G.nodes():
+#        node_image_file = Path(output_dir).as_posix() + f"/locationImages/location_{node + 1}_day.png"
+#        add_image_at_node(ax, pos[node], node, node_image_file, 0.15, str(node), rectangles_by_coords)
+#        locationName = locationArray[node].get('locationName')
+#        add_outlined_text(ax, pos[node][0], pos[node][1], locationName, fontsize=12)
+
+#    ax.set_xlim(min([x for x, y in pos.values()]) - 0.5, max([x for x, y in pos.values()]) + 0.5)
+#    ax.set_ylim(min([y for x, y in pos.values()]) - 0.5, max([y for x, y in pos.values()]) + 0.5)
+
+#    plt.axis('off')
+#    plt.savefig(Path(output_dir).as_posix() + '/map_day.svg', format='svg')
