@@ -42,8 +42,8 @@ def gen_world(prompt, output_dir, jailbreak, model):
         data['max_tokens'] = 4096
         url = os.getenv('proxy_url_claude')
 
-#    else:
-#        url = os.getenv('proxy_url_gpt')     
+    else:
+        url = os.getenv('proxy_url_gpt')     
         
     response = requests.post(url, headers=headers, json=data)
     response_content = ""

@@ -30,7 +30,8 @@ def gen_world_continue(prompt, output_dir, jailbreak, model, counter):
     data = {
         "model": model,
         "stream": True,
-        "messages": inputArray
+        "messages": inputArray,
+        "max_tokens": 4096
     }
 
     if isClaude:

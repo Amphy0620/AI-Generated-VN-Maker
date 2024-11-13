@@ -31,7 +31,8 @@ def gen_text_button(promptJSON, model, jailbreak, prefill, boolRomanticProgressi
     data = {
         "model": model,
         "stream": True,
-        "messages": promptJSON
+        "messages": promptJSON,
+        "max_tokens": 4096
     }
 
     if isClaude:

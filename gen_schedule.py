@@ -31,7 +31,8 @@ def gen_schedule(prompt, output_dir, char_num, jailbreak, model):
     data = {
         "model": model,
         "stream": True,
-        "messages": inputArray
+        "messages": inputArray,
+        "max_tokens": 4096
     }
 
     if isClaude:

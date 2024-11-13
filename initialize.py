@@ -27,7 +27,8 @@ def initialize(prompt, model):
     data = {
         "model": model,
         "stream": True,
-        "messages": inputArray
+        "messages": inputArray,
+        "max_tokens": 4096
     }
 
     if isClaude:

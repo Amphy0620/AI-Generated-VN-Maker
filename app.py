@@ -682,6 +682,9 @@ def gen_world():
     try:
         result1 = subprocess.run(['python', 'gen_world.py', temp_file_prompt_path, str(output_dir), temp_file_worldJB_path, str(totalCharGens[0][0]), str(totalCharGens[0][1]), model, clothingLabelsStr, str(isCharWorkClothes)], capture_output=True, text=True)
 
+        if result1.stderr:
+            print(result1.stderr)
+
         char_file = output_dir / "world_0.txt"
         wait_time = 0
         max_wait_time = 300  # Maximum wait time of 30 seconds
@@ -710,6 +713,9 @@ def gen_world():
             time.sleep(sleepTime)
             try:             
                 result1 = subprocess.run(['python', 'gen_world_continue.py', temp_file_prompt_path, str(output_dir), temp_file_worldJB_path, str(totalCharGens[counter - 1][0]), str(totalCharGens[counter - 1][1]), model, worldInfo, temp_file_charsSoFar_path, str(counter), clothingLabelsStr, str(isCharWorkClothes)], capture_output=True, text=True)
+
+                if result1.stderr:
+                    print(result1.stderr)
 
                 char_file_new = output_dir / f"world_{counter}.txt"
                 wait_time = 0
@@ -826,6 +832,10 @@ def gen_loc():
         try:
             isContinuation = False
             result2 = subprocess.run(['python', 'gen_locations.py', temp_file_worldContent_path, str(output_dir), temp_file_locJB_path, model, str(finalLocNum), str(isContinuation)], capture_output=True, text=True)
+
+            if result2.stderr:
+                print(result2.stderr)
+
             with open(path_to_loc_temp, 'r') as f:
                 locationsArray += json.load(f)
 
@@ -842,6 +852,10 @@ def gen_loc():
 
             try:
                 result2 = subprocess.run(['python', 'gen_locations.py', temp_file_worldContent_path, str(output_dir), temp_file_locJB_path, model, str(finalLocNum), str(isContinuation), temp_file_prevLocations_path], capture_output=True, text=True)
+
+                if result2.stderr:
+                    print(result2.stderr)
+
                 with open(path_to_loc_temp, 'r') as f:
                     locationsArray += json.load(f)
             finally:
@@ -944,7 +958,10 @@ def gen_sched():
             temp_file_schedJB_path = temp_file_schedJB.name
 
         try:
-            subprocess.run(['python', 'gen_schedule.py', temp_file_schedInfo_path, str(output_dir), str(char['charNumber']), temp_file_schedJB_path, model, clothingNamesStr, str(isCharWorkClothes)], capture_output=True, text=True)
+            result = subprocess.run(['python', 'gen_schedule.py', temp_file_schedInfo_path, str(output_dir), str(char['charNumber']), temp_file_schedJB_path, model, clothingNamesStr, str(isCharWorkClothes)], capture_output=True, text=True)
+
+            if result.stderr:
+                print(result.stderr)
         
         finally:
             os.remove(temp_file_schedInfo_path)
@@ -1163,8 +1180,15 @@ def init():
             for clothes in clothingStyles:
                 file_path_to_check = output_dir / "charImages" / f"char_{str(char['charNumber'])}_{clothes['name']}_{emotion['name']}.png"
                 if not os.path.isfile(file_path_to_check):
-                    subprocess.run(['python', 'generate_image_simplified.py', "{{{solo, white background, cowboy shot, straight-on, looking at viewer}}}, "+char['charFaceAndBody']+", "+clothes['description']+", "+emotion['description']+", "+style, str(output_dir)+"/charImages", "char_"+str(char['charNumber'])+"_"+clothes['name']+"_"+emotion['name'], 'True', str(fixedSeed)], capture_output=True, text=True)
-                    subprocess.run(['python', 'trimWhite.py', str(output_dir)+"/charImages/char_"+str(char['charNumber'])+"_"+clothes['name']+"_"+emotion['name']+".png"], capture_output=True, text=True)
+                    result1 = subprocess.run(['python', 'generate_image_simplified.py', "{{{solo, white background, cowboy shot, straight-on, looking at viewer}}}, "+char['charFaceAndBody']+", "+clothes['description']+", "+emotion['description']+", "+style, str(output_dir)+"/charImages", "char_"+str(char['charNumber'])+"_"+clothes['name']+"_"+emotion['name'], 'True', str(fixedSeed)], capture_output=True, text=True)
+
+                    if result1.stderr:
+                        print(result1.stderr)
+
+                    result2 = subprocess.run(['python', 'trimWhite.py', str(output_dir)+"/charImages/char_"+str(char['charNumber'])+"_"+clothes['name']+"_"+emotion['name']+".png"], capture_output=True, text=True)
+
+                    if result2.stderr:
+                        print(result2.stderr)
 
     for location in locations:
         file_path_to_check_day = output_dir / "locationImages" / f"location_{str(location['locationNumber'])}_day.png"
@@ -1172,19 +1196,37 @@ def init():
         if location['isOutdoors']:
             fixedSeed = random.randint(1, 2**32 - 1)
             if not os.path.isfile(file_path_to_check_day):
-                subprocess.run(['python', 'generate_image_simplified.py', "{{{scenery, no humans, outdoors}}}, [[[[[day]]]]], "+location['locationName']+" "+location['locationTagDescription'], str(output_dir)+"/locationImages", "location_"+str(location['locationNumber'])+"_day", 'False', str(fixedSeed)], capture_output=True, text=True)
+                result3 = subprocess.run(['python', 'generate_image_simplified.py', "{{{scenery, no humans, outdoors}}}, [[[[[day]]]]], "+location['locationName']+" "+location['locationTagDescription'], str(output_dir)+"/locationImages", "location_"+str(location['locationNumber'])+"_day", 'False', str(fixedSeed)], capture_output=True, text=True)
+
+                if result3.stderr:
+                    print(result3.stderr)
+
             if not os.path.isfile(file_path_to_check_night):
-                subprocess.run(['python', 'generate_image_simplified.py', "{{{scenery, no humans, outdoors}}}, [[[[[night]]]]], "+location['locationName']+" "+location['locationTagDescription'], str(output_dir)+"/locationImages", "location_"+str(location['locationNumber'])+"_night", 'False', str(fixedSeed)], capture_output=True, text=True)   
+                result4 = subprocess.run(['python', 'generate_image_simplified.py', "{{{scenery, no humans, outdoors}}}, [[[[[night]]]]], "+location['locationName']+" "+location['locationTagDescription'], str(output_dir)+"/locationImages", "location_"+str(location['locationNumber'])+"_night", 'False', str(fixedSeed)], capture_output=True, text=True)
+
+                if result4.stderr:
+                    print(result4.stderr)
+   
         else:
             if not os.path.isfile(file_path_to_check_day):
-                subprocess.run(['python', 'generate_image_simplified.py', "{{{scenery, no humans, indoors}}}, [[[[[day]]]]], "+location['locationName']+" "+location['locationTagDescription'], str(output_dir)+"/locationImages", "location_"+str(location['locationNumber'])+"_day", 'False', str(fixedSeed)], capture_output=True, text=True)
+                result5 = subprocess.run(['python', 'generate_image_simplified.py', "{{{scenery, no humans, indoors}}}, [[[[[day]]]]], "+location['locationName']+" "+location['locationTagDescription'], str(output_dir)+"/locationImages", "location_"+str(location['locationNumber'])+"_day", 'False', str(fixedSeed)], capture_output=True, text=True)
+
+                if result5.stderr:
+                    print(result5.stderr)
+
             if not os.path.isfile(file_path_to_check_night):
-                subprocess.run(['python', 'generate_image_simplified.py', "{{{scenery, no humans, indoors}}}, [[[[[night]]]]], "+location['locationName']+" "+location['locationTagDescription'], str(output_dir)+"/locationImages", "location_"+str(location['locationNumber'])+"_night", 'False', str(fixedSeed)], capture_output=True, text=True)   
+                result6 = subprocess.run(['python', 'generate_image_simplified.py', "{{{scenery, no humans, indoors}}}, [[[[[night]]]]], "+location['locationName']+" "+location['locationTagDescription'], str(output_dir)+"/locationImages", "location_"+str(location['locationNumber'])+"_night", 'False', str(fixedSeed)], capture_output=True, text=True)
+
+                if result6.stderr:
+                    print(result6.stderr)   
 
     firstOutput = None
     time.sleep(sleepTime)
 
     firstOutput = subprocess.run(['python', 'initialize.py', promptOpener, chars['world_info']+" "+locationsStr, model], capture_output=True, text=True)
+
+    if firstOutput.stderr:
+        print(firstOutput.stderr)
 
     global currentLocation, currentAdjacentLocations, currentTime, currentClothing, backgroundFile, currentOutput
 
@@ -1320,6 +1362,10 @@ def move_to():
         AIresponse = None
         try:
             AIresponse = subprocess.run(['python', 'gen_text_button.py', temp_file_path, model, jailbreak, prefill, str(boolRomanticProgression), clothingNamesStr, emotionNamesStr], capture_output=True, text=True)
+
+            if AIresponse.stderr:
+                print(AIresponse.stderr)
+
         finally:
             os.remove(temp_file_path)            
         rawOutput = AIresponse.stdout
@@ -1528,6 +1574,10 @@ def send_prompt():
     AIresponse = None
     try:
         AIresponse = subprocess.run(['python', 'gen_text_prompt.py', temp_file_path, model, jailbreak, prefill, str(boolRomanticProgression), clothingNamesStr, emotionNamesStr], capture_output=True, text=True)
+
+        if AIresponse.stderr:
+            print(AIresponse.stderr)
+
     finally:
         os.remove(temp_file_path)
     rawOutput = AIresponse.stdout
@@ -1619,7 +1669,7 @@ def save():
         addChar['emotion'] = char.emotion
         addChar['color'] = char.color
         addChar['clothingDescription'] = char.clothingDescription
-        addChar['timeToResetSchedule'] = char.timeToResetSchedule
+#        addChar['timeToResetSchedule'] = char.timeToResetSchedule
         fullSave['charArrayObj'].append(addChar)
 
     saves_dir = output_dir / "saves"
@@ -2398,7 +2448,7 @@ def wait_interrupted():
         for charNum in charArrayWithPlayerNums:
             for char in charArrayObj:
                 if char.num == charNum:
-                    charImgLocation = str(output_dir)+f"/charImages/char_{str(char.num)}_{char.clothing}_{char.emotion}_trimmed.png"
+                    charImgLocation = output_dir.as_posix()+f"/charImages/char_{str(char.num)}_{char.clothing}_{char.emotion}_trimmed.png"
                     charImgLocationStr = str(url_for('static', filename = charImgLocation))
                     charArrayWithPlayerFileLocations.append(charImgLocationStr)
 
@@ -2510,6 +2560,10 @@ def wait_interrupted():
             AIresponse = None
             try:
                 AIresponse = subprocess.run(['python', 'gen_text_prompt.py', temp_file_path, model, jailbreak, prefill, str(boolRomanticProgression), clothingNamesStr, emotionNamesStr], capture_output=True, text=True)
+
+                if AIresponse.stderr:
+                    print(AIresponse.stderr)
+
             finally:
                 os.remove(temp_file_path)
             rawOutput = AIresponse.stdout
